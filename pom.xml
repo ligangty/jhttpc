@@ -1,0 +1,128 @@
+ <!--
+
+    Copyright (C) 2013 Red Hat, Inc. (jdcasey@commonjava.org)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+            http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.commonjava</groupId>
+    <artifactId>commonjava</artifactId>
+    <version>10</version>
+  </parent>
+  
+  <groupId>org.commonjava.util</groupId>
+  <artifactId>jhttpc</artifactId>
+  <version>0.1-SNAPSHOT</version>
+  
+  <name>Java HTTP Client</name>
+  <inceptionYear>2015</inceptionYear>
+
+  <scm>
+    <connection>scm:git:http://jdcasey@github.com/commonjava/jhttpc.git</connection>
+    <developerConnection>scm:git:git@github.com:commonjava/jhttpc.git</developerConnection>
+    <url>http://github.com/commonjava/jhttpc</url>
+    <tag>HEAD</tag>
+  </scm>
+
+  <properties>
+    <projectOwner>Red Hat, Inc.</projectOwner>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.commonjava.boms</groupId>
+        <artifactId>web-commons-bom</artifactId>
+        <version>17</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk15on</artifactId>
+        <version>1.50</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-lang</groupId>
+        <artifactId>commons-lang</artifactId>
+        <version>2.6</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>1.6</version>
+      </dependency>
+      <dependency>
+        <groupId>org.commonjava.util</groupId>
+        <artifactId>http-testserver</artifactId>
+        <version>1.1</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  
+  <dependencies>
+    
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.commonjava.util</groupId>
+      <artifactId>http-testserver</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>log4j-over-slf4j</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk15on</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>javax.inject</groupId>
+      <artifactId>javax.inject</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>javax.enterprise</groupId>
+      <artifactId>cdi-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+    </dependency>
+  </dependencies>
+  
+</project>
