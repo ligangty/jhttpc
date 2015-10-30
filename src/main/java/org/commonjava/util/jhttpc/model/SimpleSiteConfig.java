@@ -34,6 +34,14 @@ public class SimpleSiteConfig
 
     private Integer requestTimeoutSeconds;
 
+    public SimpleSiteConfig(){}
+
+    public SimpleSiteConfig( String id, String uri )
+    {
+        this.id = id;
+        this.uri = uri;
+    }
+
     @Override
     public String getId()
     {

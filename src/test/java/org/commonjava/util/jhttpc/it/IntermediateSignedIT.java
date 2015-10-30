@@ -1,5 +1,8 @@
 package org.commonjava.util.jhttpc.it;
 
+import org.commonjava.util.jhttpc.model.SimpleSiteConfig;
+import org.commonjava.util.jhttpc.model.SiteConfig;
+
 /**
  * Created by jdcasey on 10/30/15.
  */

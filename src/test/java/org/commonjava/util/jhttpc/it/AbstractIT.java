@@ -15,6 +15,8 @@ import org.commonjava.test.http.expect.ExpectationServer;
 import org.commonjava.util.jhttpc.HttpFactory;
 import org.commonjava.util.jhttpc.auth.MemoryPasswordManager;
 import org.commonjava.util.jhttpc.auth.PasswordManager;
+import org.commonjava.util.jhttpc.model.SimpleSiteConfig;
+import org.commonjava.util.jhttpc.model.SiteConfig;
 import org.commonjava.util.jhttpc.util.SSLUtils;
 import org.commonjava.util.jhttpc.util.UrlUtils;
 import org.junit.After;
@@ -68,6 +70,15 @@ public abstract class AbstractIT
 
     protected abstract String[] getCertificatePaths();
 
+    protected SimpleSiteConfig getSiteConfig()
+            throws Exception
+    {
+        SimpleSiteConfig config = new SimpleSiteConfig( getContainerId(), getSSLBaseUrl() );
+        config.setServerCertPem( getServerCertsPem() );
+
+        return config;
+    }
+
     @Before
     public void setup()
             throws Exception
@@ -81,6 +92,33 @@ public abstract class AbstractIT
             throws Exception
     {
         factory.close();
+    }
+
+    @Test
+    public void simpleSSLGet()
+            throws Exception
+    {
+        String path = name.getMethodName() + "/path/to/test";
+        String content = "This is a test.";
+
+        putContent( path, content );
+
+        SiteConfig config = getSiteConfig();
+        try (CloseableHttpClient client = factory.createClient( config ))
+        {
+            String result = client.execute( new HttpGet( formatSSLUrl( path ) ), new ResponseHandler<String>()
+            {
+                @Override
+                public String handleResponse( HttpResponse response )
+                        throws ClientProtocolException, IOException
+                {
+                    assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
+                    return IOUtils.toString( response.getEntity().getContent() );
+                }
+            } );
+
+            assertThat( result, equalTo( content ) );
+        }
     }
 
     @Test
@@ -140,6 +178,18 @@ public abstract class AbstractIT
     public void decodeSiteCertificatePems()
             throws Exception
     {
+        String pem = getServerCertsPem();
+        KeyStore store = SSLUtils.readCerts( pem, "somehost" );
+        Enumeration<String> aliases = store.aliases();
+        while ( aliases.hasMoreElements() )
+        {
+            System.out.println( aliases.nextElement() );
+        }
+    }
+
+    protected String getServerCertsPem()
+            throws Exception
+    {
         String[] paths = getCertificatePaths();
         StringBuilder pem = new StringBuilder();
 
@@ -162,18 +212,26 @@ public abstract class AbstractIT
                 assertThat( result, notNullValue() );
                 pem.append( result ).append( "\n" );
             }
-
-            KeyStore store = SSLUtils.readCerts( pem.toString(), "somehost" );
-            Enumeration<String> aliases = store.aliases();
-            while ( aliases.hasMoreElements() )
-            {
-                System.out.println( aliases.nextElement() );
-            }
         }
+
+        return pem.toString();
     }
 
     protected synchronized String formatUrl( String... path )
             throws Exception
+    {
+        String baseUrl = getBaseUrl();
+        return UrlUtils.buildUrl( baseUrl, path );
+    }
+
+    protected synchronized String formatSSLUrl( String... path )
+            throws Exception
+    {
+        String baseUrl = getSSLBaseUrl();
+        return UrlUtils.buildUrl( baseUrl, path );
+    }
+
+    protected String getBaseUrl()
     {
         String host = System.getProperty( String.format( NON_SSL_HOST, getContainerId() ) );
         String port = System.getProperty( String.format( NON_SSL_PORT, getContainerId() ) );
@@ -184,11 +242,10 @@ public abstract class AbstractIT
                                  + ". Did you forget to configure the docker-maven-plugin?" );
         }
 
-        return UrlUtils.buildUrl( String.format( NON_SSL_URL_FORMAT, host, port ), path );
+        return String.format( NON_SSL_URL_FORMAT, host, port );
     }
 
-    protected synchronized String formatSSLUrl( String... path )
-            throws Exception
+    protected String getSSLBaseUrl()
     {
         String host = System.getProperty( String.format( SSL_HOST, getContainerId() ) );
         String port = System.getProperty( String.format( SSL_PORT, getContainerId() ) );
@@ -199,7 +256,7 @@ public abstract class AbstractIT
                                  + ". Did you forget to configure the docker-maven-plugin?" );
         }
 
-        return UrlUtils.buildUrl( String.format( SSL_URL_FORMAT, host, port ), path );
+        return String.format( SSL_URL_FORMAT, host, port );
     }
 
     protected void deleteContent( String path )
