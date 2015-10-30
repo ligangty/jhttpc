@@ -124,5 +124,117 @@
       <artifactId>logback-classic</artifactId>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>net.wouterdanes.docker</groupId>
+        <artifactId>docker-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>start-IT-containers</id>
+            <goals>
+              <goal>start-containers</goal>
+            </goals>
+            <phase>pre-integration-test</phase>
+            <configuration>
+              <providerName>local</providerName>
+              <containers>
+                <container>
+                  <id>selfsigned</id>
+                  <image>docker.io/buildchimp/ssl-dojo:dev</image>
+                  <env>
+                    <CA_TYPE>self</CA_TYPE>
+                    <CA_HOST>test.myco.com</CA_HOST>
+                  </env>
+                  <hostname>test.myco.com</hostname>
+                </container>
+                <container>
+                  <id>rootsigned</id>
+                  <image>docker.io/buildchimp/ssl-dojo:dev</image>
+                  <env>
+                    <CA_TYPE>single</CA_TYPE>
+                    <CA_HOST>test.myco.com</CA_HOST>
+                  </env>
+                  <hostname>test.myco.com</hostname>
+                </container>
+                <container>
+                  <id>intersigned</id>
+                  <image>docker.io/buildchimp/ssl-dojo:dev</image>
+                  <env>
+                    <CA_TYPE>multi</CA_TYPE>
+                    <CA_HOST>test.myco.com</CA_HOST>
+                  </env>
+                  <hostname>test.myco.com</hostname>
+                </container>
+              </containers>
+            </configuration>
+          </execution>
+          <execution>
+            <id>stop-IT-containers</id>
+            <goals>
+              <goal>stop-containers</goal>
+            </goals>
+            <phase>post-integration-test</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>1.8</version>
+        <executions>
+          <execution>
+            <id>record-docker-properties</id>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <phase>pre-integration-test</phase>
+            <configuration>
+              <target>
+                <echo file="${project.build.directory}/docker.properties">
+                  <![CDATA[
+docker.containers.selfsigned.ports.80/tcp.host=${docker.containers.selfsigned.ports.80/tcp.host}
+docker.containers.selfsigned.ports.443/tcp.host=${docker.containers.selfsigned.ports.443/tcp.host}
+docker.containers.selfsigned.ports.80/tcp.port=${docker.containers.selfsigned.ports.80/tcp.port}
+docker.containers.selfsigned.ports.443/tcp.port=${docker.containers.selfsigned.ports.443/tcp.port}
+
+docker.containers.rootsigned.ports.80/tcp.host=${docker.containers.rootsigned.ports.80/tcp.host}
+docker.containers.rootsigned.ports.443/tcp.host=${docker.containers.rootsigned.ports.443/tcp.host}
+docker.containers.rootsigned.ports.80/tcp.port=${docker.containers.rootsigned.ports.80/tcp.port}
+docker.containers.rootsigned.ports.443/tcp.port=${docker.containers.rootsigned.ports.443/tcp.port}
+
+docker.containers.intersigned.ports.80/tcp.host=${docker.containers.intersigned.ports.80/tcp.host}
+docker.containers.intersigned.ports.443/tcp.host=${docker.containers.intersigned.ports.443/tcp.host}
+docker.containers.intersigned.ports.80/tcp.port=${docker.containers.intersigned.ports.80/tcp.port}
+docker.containers.intersigned.ports.443/tcp.port=${docker.containers.intersigned.ports.443/tcp.port}
+]]>
+                </echo>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>2.19</version>
+        <executions>
+          <execution>
+            <id>functional-tests</id>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>**/*IT.java</include>
+              </includes>
+              <systemPropertiesFile>${project.build.directory}/docker.properties</systemPropertiesFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
   
 </project>
