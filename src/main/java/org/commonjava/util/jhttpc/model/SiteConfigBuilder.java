@@ -23,7 +23,7 @@ import java.util.Map;
 /**
  * Created by jdcasey on 10/28/15.
  */
-public final class SiteConfig
+public class SiteConfigBuilder
 {
 
     // TODO: too low?
@@ -33,50 +33,49 @@ public final class SiteConfig
 
     public static final int DEFAULT_MAX_CONNECTIONS = 4;
 
-    private final String id;
+    private String id;
 
-    private final String uri;
+    private String uri;
 
-    private final String user;
+    private String user;
 
-    private final String proxyHost;
+    private String proxyHost;
 
-    private final Integer proxyPort;
+    private Integer proxyPort;
 
-    private final String proxyUser;
+    private String proxyUser;
 
-    private final SiteTrustType trustType;
+    private SiteTrustType trustType;
 
-    private final String keyCertPem;
+    private String keyCertPem;
 
-    private final String serverCertPem;
+    private String serverCertPem;
 
     private Map<String, String> attributes;
 
-    private final Integer requestTimeoutSeconds;
+    private Integer requestTimeoutSeconds;
 
-    private final Integer maxConnections;
+    private Integer maxConnections;
 
     public Map<String, String> getAttributes()
     {
         return attributes;
     }
 
-    SiteConfig( String id, String uri, String user, String proxyHost, Integer proxyPort, String proxyUser,
-                       SiteTrustType trustType, String keyCertPem, String serverCertPem, Integer requestTimeoutSeconds,
-                       Integer maxConnections )
+    public SiteConfigBuilder()
+    {
+    }
+
+    public SiteConfigBuilder( String id, String uri )
     {
         this.id = id;
         this.uri = uri;
-        this.user = user;
-        this.proxyHost = proxyHost;
-        this.proxyPort = proxyPort;
-        this.proxyUser = proxyUser;
-        this.trustType = trustType;
-        this.keyCertPem = keyCertPem;
-        this.serverCertPem = serverCertPem;
-        this.requestTimeoutSeconds = requestTimeoutSeconds;
-        this.maxConnections = maxConnections;
+    }
+
+    public SiteConfig build()
+    {
+        return new SiteConfig( id, uri, user, proxyHost, proxyPort, proxyUser, trustType, keyCertPem, serverCertPem,
+                               requestTimeoutSeconds, maxConnections );
     }
 
     public String getId()
@@ -158,9 +157,81 @@ public final class SiteConfig
         return attributes == null ? null : attributes.get( key );
     }
 
+    public SiteConfigBuilder withId( String id )
+    {
+        this.id = id;
+        return this;
+    }
+
+    public SiteConfigBuilder withUri( String uri )
+    {
+        this.uri = uri;
+        return this;
+    }
+
+    public SiteConfigBuilder withUser( String user )
+    {
+        this.user = user;
+        return this;
+    }
+
+    public SiteConfigBuilder withProxyHost( String proxyHost )
+    {
+        this.proxyHost = proxyHost;
+        return this;
+    }
+
+    public SiteConfigBuilder withProxyPort( Integer proxyPort )
+    {
+        this.proxyPort = proxyPort;
+        return this;
+    }
+
+    public SiteConfigBuilder withProxyUser( String proxyUser )
+    {
+        this.proxyUser = proxyUser;
+        return this;
+    }
+
+    public SiteConfigBuilder withTrustType( SiteTrustType trustType )
+    {
+        this.trustType = trustType;
+        return this;
+    }
+
+    public SiteConfigBuilder withKeyCertPem( String keyCertPem )
+    {
+        this.keyCertPem = keyCertPem;
+        return this;
+    }
+
+    public SiteConfigBuilder withServerCertPem( String serverCertPem )
+    {
+        this.serverCertPem = serverCertPem;
+        return this;
+    }
+
+    public SiteConfigBuilder withAttributes( Map<String, String> attributes )
+    {
+        this.attributes = attributes;
+        return this;
+    }
+
+    public SiteConfigBuilder withRequestTimeoutSeconds( Integer requestTimeoutSeconds )
+    {
+        this.requestTimeoutSeconds = requestTimeoutSeconds;
+        return this;
+    }
+
     public int getMaxConnections()
     {
         return maxConnections == null ? DEFAULT_MAX_CONNECTIONS : maxConnections;
+    }
+
+    public SiteConfigBuilder withMaxConnections( Integer maxConnections )
+    {
+        this.maxConnections = maxConnections;
+        return this;
     }
 
     public SiteTrustType getTrustType()
@@ -183,12 +254,12 @@ public final class SiteConfig
         {
             return true;
         }
-        if ( !( o instanceof SiteConfig ) )
+        if ( !( o instanceof SiteConfigBuilder ) )
         {
             return false;
         }
 
-        SiteConfig that = (SiteConfig) o;
+        SiteConfigBuilder that = (SiteConfigBuilder) o;
 
         return !( getId() != null ? !getId().equals( that.getId() ) : that.getId() != null );
 
@@ -197,7 +268,7 @@ public final class SiteConfig
     @Override
     public int hashCode()
     {
-        return 13 + (getId() != null ? getId().hashCode() : 0);
+        return 13 + ( getId() != null ? getId().hashCode() : 0 );
     }
 
     @Override

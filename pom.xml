@@ -1,6 +1,6 @@
- <!--
+<!--
 
-    Copyright (C) 2013 Red Hat, Inc. (jdcasey@commonjava.org)
+    Copyright (C) 2015 Red Hat, Inc. (jdcasey@commonjava.org)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@
 
   <properties>
     <projectOwner>Red Hat, Inc.</projectOwner>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <javaVersion>1.8</javaVersion>
   </properties>
 
   <dependencyManagement>
@@ -52,7 +52,12 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      
+
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>18.0</version>
+      </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcprov-jdk15on</artifactId>
@@ -78,7 +83,11 @@
   </dependencyManagement>
   
   <dependencies>
-    
+
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
@@ -128,6 +137,7 @@
   <build>
     <plugins>
       <plugin>
+        <!-- See: https://github.com/wouterd/docker-maven-plugin -->
         <groupId>net.wouterdanes.docker</groupId>
         <artifactId>docker-maven-plugin</artifactId>
         <version>3.1.0</version>
@@ -208,6 +218,8 @@ docker.containers.intersigned.ports.80/tcp.host=${docker.containers.intersigned.
 docker.containers.intersigned.ports.443/tcp.host=${docker.containers.intersigned.ports.443/tcp.host}
 docker.containers.intersigned.ports.80/tcp.port=${docker.containers.intersigned.ports.80/tcp.port}
 docker.containers.intersigned.ports.443/tcp.port=${docker.containers.intersigned.ports.443/tcp.port}
+
+javax.net.debug=all
 ]]>
                 </echo>
               </target>
@@ -229,6 +241,8 @@ docker.containers.intersigned.ports.443/tcp.port=${docker.containers.intersigned
               <includes>
                 <include>**/*IT.java</include>
               </includes>
+              <forkCount>1C</forkCount>
+              <redirectTestOutputToFile>true</redirectTestOutputToFile>
               <systemPropertiesFile>${project.build.directory}/docker.properties</systemPropertiesFile>
             </configuration>
           </execution>

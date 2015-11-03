@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 Red Hat, Inc. (jdcasey@commonjava.org)
+ * Copyright (C) 2015 Red Hat, Inc. (jdcasey@commonjava.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.commonjava.util.jhttpc.util;
+package org.commonjava.util.jhttpc.INTERNAL.util;
 
 import org.bouncycastle.asn1.x500.AttributeTypeAndValue;
 import org.bouncycastle.asn1.x500.RDN;
@@ -188,7 +188,11 @@ public final class SSLUtils
     public static void extractAliases( Certificate certificate, Set<String> aliases )
             throws CertificateParsingException
     {
+        Logger logger = LoggerFactory.getLogger( SSLUtils.class );
+
         X509Certificate cert = (X509Certificate) certificate;
+        logger.debug( "Extracting aliases from:\n\n{}\n\n", cert );
+
         X500Principal x500Principal = cert.getSubjectX500Principal();
         X500Name x500Name = new X500Name( x500Principal.getName( X500Principal.RFC1779 ) );
 
@@ -216,7 +220,6 @@ public final class SSLUtils
         }
         else
         {
-            Logger logger = LoggerFactory.getLogger( SSLUtils.class );
             logger.debug( "NO SubjectAlternativeNames available!" );
         }
     }

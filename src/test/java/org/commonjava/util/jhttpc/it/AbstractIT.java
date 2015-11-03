@@ -1,33 +1,41 @@
+/**
+ * Copyright (C) 2015 Red Hat, Inc. (jdcasey@commonjava.org)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.commonjava.util.jhttpc.it;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.commonjava.test.http.expect.ExpectationServer;
 import org.commonjava.util.jhttpc.HttpFactory;
 import org.commonjava.util.jhttpc.auth.MemoryPasswordManager;
 import org.commonjava.util.jhttpc.auth.PasswordManager;
-import org.commonjava.util.jhttpc.model.SimpleSiteConfig;
 import org.commonjava.util.jhttpc.model.SiteConfig;
-import org.commonjava.util.jhttpc.util.SSLUtils;
+import org.commonjava.util.jhttpc.INTERNAL.util.SSLUtils;
+import org.commonjava.util.jhttpc.model.SiteConfigBuilder;
 import org.commonjava.util.jhttpc.util.UrlUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
 import org.junit.rules.TestName;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
 import java.security.KeyStore;
 import java.util.Enumeration;
 
@@ -70,11 +78,10 @@ public abstract class AbstractIT
 
     protected abstract String[] getCertificatePaths();
 
-    protected SimpleSiteConfig getSiteConfig()
+    protected SiteConfig getSiteConfig()
             throws Exception
     {
-        SimpleSiteConfig config = new SimpleSiteConfig( getContainerId(), getSSLBaseUrl() );
-        config.setServerCertPem( getServerCertsPem() );
+        SiteConfig config = new SiteConfigBuilder( getContainerId(), getSSLBaseUrl() ).withServerCertPem( getServerCertsPem() ).build();
 
         return config;
     }
@@ -94,7 +101,6 @@ public abstract class AbstractIT
         factory.close();
     }
 
-    @Test
     public void simpleSSLGet()
             throws Exception
     {
@@ -106,22 +112,14 @@ public abstract class AbstractIT
         SiteConfig config = getSiteConfig();
         try (CloseableHttpClient client = factory.createClient( config ))
         {
-            String result = client.execute( new HttpGet( formatSSLUrl( path ) ), new ResponseHandler<String>()
-            {
-                @Override
-                public String handleResponse( HttpResponse response )
-                        throws ClientProtocolException, IOException
-                {
-                    assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
-                    return IOUtils.toString( response.getEntity().getContent() );
-                }
-            } );
+            CloseableHttpResponse response = client.execute( new HttpGet( formatSSLUrl( path ) ) );
+            assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
+            String result = IOUtils.toString( response.getEntity().getContent() );
 
             assertThat( result, equalTo( content ) );
         }
     }
 
-    @Test
     public void simpleSingleGet_NoSSL()
             throws Exception
     {
@@ -132,22 +130,14 @@ public abstract class AbstractIT
 
         try (CloseableHttpClient client = factory.createClient())
         {
-            String result = client.execute( new HttpGet( formatUrl( path ) ), new ResponseHandler<String>()
-            {
-                @Override
-                public String handleResponse( HttpResponse response )
-                        throws ClientProtocolException, IOException
-                {
-                    assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
-                    return IOUtils.toString( response.getEntity().getContent() );
-                }
-            } );
+            CloseableHttpResponse response = client.execute( new HttpGet( formatUrl( path ) ) );
+            assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
+            String result = IOUtils.toString( response.getEntity().getContent() );
 
             assertThat( result, equalTo( content ) );
         }
     }
 
-    @Test
     public void retrieveSiteCertificatePems()
             throws Exception
     {
@@ -157,16 +147,9 @@ public abstract class AbstractIT
         {
             for ( String path : paths )
             {
-                String result = client.execute( new HttpGet( formatUrl( path ) ), new ResponseHandler<String>()
-                {
-                    @Override
-                    public String handleResponse( HttpResponse response )
-                            throws ClientProtocolException, IOException
-                    {
-                        assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
-                        return IOUtils.toString( response.getEntity().getContent() );
-                    }
-                } );
+                CloseableHttpResponse response = client.execute( new HttpGet( formatUrl( path ) ) );
+                assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
+                String result = IOUtils.toString( response.getEntity().getContent() );
 
                 System.out.println( result );
                 assertThat( result, notNullValue() );
@@ -174,7 +157,6 @@ public abstract class AbstractIT
         }
     }
 
-    @Test
     public void decodeSiteCertificatePems()
             throws Exception
     {
@@ -197,16 +179,9 @@ public abstract class AbstractIT
         {
             for ( String path : paths )
             {
-                String result = client.execute( new HttpGet( formatUrl( path ) ), new ResponseHandler<String>()
-                {
-                    @Override
-                    public String handleResponse( HttpResponse response )
-                            throws ClientProtocolException, IOException
-                    {
-                        assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
-                        return IOUtils.toString( response.getEntity().getContent() );
-                    }
-                } );
+                CloseableHttpResponse response = client.execute( new HttpGet( formatUrl( path ) ) );
+                assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
+                String result = IOUtils.toString( response.getEntity().getContent() );
 
                 System.out.println( result );
                 assertThat( result, notNullValue() );

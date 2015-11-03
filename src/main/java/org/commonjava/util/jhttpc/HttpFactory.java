@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 Red Hat, Inc. (jdcasey@commonjava.org)
+ * Copyright (C) 2015 Red Hat, Inc. (jdcasey@commonjava.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,7 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.conn.routing.HttpRoutePlanner;
-import org.apache.http.conn.socket.LayeredConnectionSocketFactory;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.BasicCredentialsProvider;
@@ -31,17 +29,19 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
 import org.commonjava.util.jhttpc.auth.PasswordKey;
 import org.commonjava.util.jhttpc.auth.PasswordManager;
 import org.commonjava.util.jhttpc.auth.PasswordType;
+import org.commonjava.util.jhttpc.INTERNAL.conn.ConnectionManagerTracker;
+import org.commonjava.util.jhttpc.INTERNAL.conn.ConnectionManagerCache;
+import org.commonjava.util.jhttpc.INTERNAL.conn.SiteConnectionConfig;
+import org.commonjava.util.jhttpc.INTERNAL.conn.TrackedHttpClient;
 import org.commonjava.util.jhttpc.model.SiteConfig;
 import org.commonjava.util.jhttpc.model.SiteTrustType;
-import org.commonjava.util.jhttpc.util.CertEnumerator;
-import org.commonjava.util.jhttpc.util.CloseBlockingConnectionManager;
-import org.commonjava.util.jhttpc.util.SSLUtils;
+import org.commonjava.util.jhttpc.INTERNAL.util.CertEnumerator;
+import org.commonjava.util.jhttpc.INTERNAL.util.SSLUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,41 +58,18 @@ import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 
 public class HttpFactory
-    implements Closeable
+        implements Closeable
 {
-    public static final int DEFAULT_MAX_CONNECTIONS = 200;
-
     private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     private final PasswordManager passwords;
 
-    private int maxConnections;
-
-    private final CloseBlockingConnectionManager connectionManager;
+    private final ConnectionManagerCache connectionCache;
 
     public HttpFactory( final PasswordManager passwords )
     {
-        this( passwords, DEFAULT_MAX_CONNECTIONS );
-    }
-
-    public HttpFactory( final PasswordManager passwords, final int maxConnections )
-    {
         this.passwords = passwords;
-        this.maxConnections = maxConnections;
-        final PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
-        cm.setMaxTotal( maxConnections );
-        connectionManager = new CloseBlockingConnectionManager( cm );
-    }
-
-    public HttpFactory( final PasswordManager passwordManager, final HttpClientConnectionManager connectionManager )
-    {
-        passwords = passwordManager;
-        this.connectionManager = new CloseBlockingConnectionManager( connectionManager );
-    }
-
-    public int getMaxConnections()
-    {
-        return maxConnections;
+        this.connectionCache = new ConnectionManagerCache();
     }
 
     public PasswordManager getPasswordManager()
@@ -101,31 +78,38 @@ public class HttpFactory
     }
 
     public CloseableHttpClient createClient()
-        throws IOException
+            throws JHttpCException
     {
         return createClient( null );
     }
 
     public CloseableHttpClient createClient( final SiteConfig location )
-        throws IOException
+            throws JHttpCException
     {
-        final HttpClientBuilder builder = HttpClients.custom()
-                                                     .setConnectionManager( connectionManager );
-
+        CloseableHttpClient client;
         if ( location != null )
         {
-            final LayeredConnectionSocketFactory sslFac = createSSLSocketFactory( location );
+            final HttpClientBuilder builder = HttpClients.custom();
+
+            logger.debug( "Using site config: {} for advanced client options", location );
+            SiteConnectionConfig connConfig = new SiteConnectionConfig(location);
+
+            final SSLConnectionSocketFactory sslFac = createSSLSocketFactory( location );
             if ( sslFac != null )
             {
-//                HostnameVerifier verifier = new SSLHostnameVerifierImpl( );
-//                builder.setSSLHostnameVerifier( verifier );
+                //                HostnameVerifier verifier = new SSLHostnameVerifierImpl( );
+                //                builder.setSSLHostnameVerifier( verifier );
                 builder.setSSLSocketFactory( sslFac );
+                connConfig.withSSLConnectionSocketFactory( sslFac );
             }
+
+            ConnectionManagerTracker managerWrapper = connectionCache.getTrackerFor( connConfig );
+            builder.setConnectionManager( managerWrapper.acquire() );
 
             if ( location.getProxyHost() != null )
             {
-                final HttpRoutePlanner planner =
-                    new DefaultProxyRoutePlanner( new HttpHost( location.getProxyHost(), getProxyPort( location ) ) );
+                final HttpRoutePlanner planner = new DefaultProxyRoutePlanner(
+                        new HttpHost( location.getProxyHost(), getProxyPort( location ) ) );
                 builder.setRoutePlanner( planner );
             }
 
@@ -135,10 +119,16 @@ public class HttpFactory
                                                           .setSocketTimeout( timeout )
                                                           .setConnectTimeout( timeout )
                                                           .build() );
+
+            client = new TrackedHttpClient( builder.build(), managerWrapper );
+//            client = builder.build();
+        }
+        else
+        {
+            client = HttpClients.createDefault();
         }
 
-
-        return builder.build();
+        return client;
     }
 
     private int getProxyPort( final SiteConfig location )
@@ -170,15 +160,13 @@ public class HttpFactory
 
             if ( location.getUser() != null )
             {
-                final String password =
-                    passwords.lookup( new PasswordKey( location, PasswordType.USER ) );
+                final String password = passwords.lookup( new PasswordKey( location, PasswordType.USER ) );
                 creds.setCredentials( as, new UsernamePasswordCredentials( location.getUser(), password ) );
             }
 
             if ( location.getProxyHost() != null && location.getProxyUser() != null )
             {
-                final String password =
-                    passwords.lookup( new PasswordKey( location, PasswordType.PROXY ) );
+                final String password = passwords.lookup( new PasswordKey( location, PasswordType.PROXY ) );
                 creds.setCredentials( new AuthScope( location.getProxyHost(), getProxyPort( location ) ),
                                       new UsernamePasswordCredentials( location.getProxyUser(), password ) );
             }
@@ -190,20 +178,22 @@ public class HttpFactory
     }
 
     private SSLConnectionSocketFactory createSSLSocketFactory( final SiteConfig location )
-        throws IOException
+            throws JHttpCException
     {
         KeyStore ks = null;
         KeyStore ts = null;
 
         final String kcPem = location.getKeyCertPem();
+
         final String kcPass = passwords.lookup( new PasswordKey( location, PasswordType.KEY ) );
         if ( kcPem != null )
         {
+            logger.debug( "Adding client key/certificate from: {}", location );
             if ( kcPass == null || kcPass.length() < 1 )
             {
                 logger.error( "Invalid configuration. Location: {} cannot have an empty key password!",
                               location.getUri() );
-                throw new IOException( "Location: " + location.getUri() + " is misconfigured!" );
+                throw new JHttpCException( "Location: " + location.getUri() + " is misconfigured! Key password cannot be empty." );
             }
 
             try
@@ -215,34 +205,48 @@ public class HttpFactory
             }
             catch ( final CertificateException e )
             {
-                logger.error( String.format( "Invalid configuration. Location: %s has an invalid client certificate! Error: %s",
-                                             location.getUri(), e.getMessage() ), e );
-                throw new IOException( "Failed to initialize SSL connection for repository: " + location.getUri() );
+                logger.error( String.format(
+                        "Invalid configuration. Location: %s has an invalid client certificate! Error: %s",
+                        location.getUri(), e.getMessage() ), e );
+                throw new JHttpCException( "Failed to initialize SSL connection for repository: " + location.getUri() );
             }
             catch ( final KeyStoreException e )
             {
-                logger.error( String.format( "Invalid configuration. Cannot initialize keystore for repository: %s. Error: %s",
-                                             location.getUri(), e.getMessage() ), e );
-                throw new IOException( "Failed to initialize SSL connection for repository: " + location.getUri() );
+                logger.error( String.format(
+                        "Invalid configuration. Cannot initialize keystore for repository: %s. Error: %s",
+                        location.getUri(), e.getMessage() ), e );
+                throw new JHttpCException( "Failed to initialize SSL connection for repository: " + location.getUri() );
             }
             catch ( final NoSuchAlgorithmException e )
             {
-                logger.error( String.format( "Invalid configuration. Cannot initialize keystore for repository: %s. Error: %s",
-                                             location.getUri(), e.getMessage() ), e );
-                throw new IOException( "Failed to initialize SSL connection for repository: " + location.getUri() );
+                logger.error( String.format(
+                        "Invalid configuration. Cannot initialize keystore for repository: %s. Error: %s",
+                        location.getUri(), e.getMessage() ), e );
+                throw new JHttpCException( "Failed to initialize SSL connection for repository: " + location.getUri() );
             }
             catch ( final InvalidKeySpecException e )
             {
                 logger.error( String.format( "Invalid configuration. Invalid client key for repository: %s. Error: %s",
                                              location.getUri(), e.getMessage() ), e );
-                throw new IOException( "Failed to initialize SSL connection for repository: " + location.getUri() );
+                throw new JHttpCException( "Failed to initialize SSL connection for repository: " + location.getUri() );
             }
+            catch ( IOException e )
+            {
+                throw new JHttpCException( "Failed to read client SSL key/certificate from: %s. Reason: %s", e,
+                                           location, e.getMessage() );
+            }
+        }
+        else
+        {
+            logger.debug( "No client key/certificate found" );
         }
 
         final String sPem = location.getServerCertPem();
+
         //        logger.debug( "Server certificate PEM:\n{}", sPem );
         if ( sPem != null )
         {
+            logger.debug( "Adding server certificate(s) from: {}", location );
             try
             {
                 logger.debug( "Reading Server SSL cert from:\n\n{}\n\n", sPem );
@@ -252,30 +256,42 @@ public class HttpFactory
             }
             catch ( final CertificateException e )
             {
-                logger.error( String.format( "Invalid configuration. Location: %s has an invalid server certificate! Error: %s",
-                                             location.getUri(), e.getMessage() ), e );
-                throw new IOException( "Failed to initialize SSL connection for repository: " + location.getUri() );
+                logger.error( String.format(
+                        "Invalid configuration. Location: %s has an invalid server certificate! Error: %s",
+                        location.getUri(), e.getMessage() ), e );
+                throw new JHttpCException( "Failed to initialize SSL connection for repository: " + location.getUri() );
             }
             catch ( final KeyStoreException e )
             {
-                logger.error( String.format( "Invalid configuration. Cannot initialize keystore for repository: %s. Error: %s",
-                                             location.getUri(), e.getMessage() ), e );
-                throw new IOException( "Failed to initialize SSL connection for repository: " + location.getUri() );
+                logger.error( String.format(
+                        "Invalid configuration. Cannot initialize keystore for repository: %s. Error: %s",
+                        location.getUri(), e.getMessage() ), e );
+                throw new JHttpCException( "Failed to initialize SSL connection for repository: " + location.getUri() );
             }
             catch ( final NoSuchAlgorithmException e )
             {
-                logger.error( String.format( "Invalid configuration. Cannot initialize keystore for repository: %s. Error: %s",
-                                             location.getUri(), e.getMessage() ), e );
-                throw new IOException( "Failed to initialize SSL connection for repository: " + location.getUri() );
+                logger.error( String.format(
+                        "Invalid configuration. Cannot initialize keystore for repository: %s. Error: %s",
+                        location.getUri(), e.getMessage() ), e );
+                throw new JHttpCException( "Failed to initialize SSL connection for repository: " + location.getUri() );
             }
+            catch ( IOException e )
+            {
+                throw new JHttpCException( "Failed to read server SSL certificate(s) (or couldn't parse server hostname) from: %s. Reason: %s", e,
+                                           location, e.getMessage() );
+            }
+        }
+        else
+        {
+            logger.debug( "No server certificates found" );
         }
 
         if ( ks != null || ts != null )
         {
+            logger.debug( "Setting up SSL context." );
             try
             {
-                SSLContextBuilder sslBuilder = SSLContexts.custom()
-                                              .useProtocol( SSLConnectionSocketFactory.TLS );
+                SSLContextBuilder sslBuilder = SSLContexts.custom().useProtocol( SSLConnectionSocketFactory.TLS );
                 if ( ks != null )
                 {
                     logger.debug( "Loading key material for SSL context..." );
@@ -301,36 +317,44 @@ public class HttpFactory
             }
             catch ( final KeyManagementException e )
             {
-                logger.error( "Invalid configuration. Cannot initialize SSL socket factory for repository: {}. Error: {}",
-                              e, location.getUri(), e.getMessage() );
-                throw new IOException( "Failed to initialize SSL connection for repository: " + location.getUri() );
+                logger.error(
+                        "Invalid configuration. Cannot initialize SSL socket factory for repository: {}. Error: {}", e,
+                        location.getUri(), e.getMessage() );
+                throw new JHttpCException( "Failed to initialize SSL connection for repository: " + location.getUri() );
             }
             catch ( final UnrecoverableKeyException e )
             {
-                logger.error( "Invalid configuration. Cannot initialize SSL socket factory for repository: {}. Error: {}",
-                              e, location.getUri(), e.getMessage() );
-                throw new IOException( "Failed to initialize SSL connection for repository: " + location.getUri() );
+                logger.error(
+                        "Invalid configuration. Cannot initialize SSL socket factory for repository: {}. Error: {}", e,
+                        location.getUri(), e.getMessage() );
+                throw new JHttpCException( "Failed to initialize SSL connection for repository: " + location.getUri() );
             }
             catch ( final NoSuchAlgorithmException e )
             {
-                logger.error( "Invalid configuration. Cannot initialize SSL socket factory for repository: {}. Error: {}",
-                              e, location.getUri(), e.getMessage() );
-                throw new IOException( "Failed to initialize SSL connection for repository: " + location.getUri() );
+                logger.error(
+                        "Invalid configuration. Cannot initialize SSL socket factory for repository: {}. Error: {}", e,
+                        location.getUri(), e.getMessage() );
+                throw new JHttpCException( "Failed to initialize SSL connection for repository: " + location.getUri() );
             }
             catch ( final KeyStoreException e )
             {
-                logger.error( "Invalid configuration. Cannot initialize SSL socket factory for repository: {}. Error: {}",
-                              e, location.getUri(), e.getMessage() );
-                throw new IOException( "Failed to initialize SSL connection for repository: " + location.getUri() );
+                logger.error(
+                        "Invalid configuration. Cannot initialize SSL socket factory for repository: {}. Error: {}", e,
+                        location.getUri(), e.getMessage() );
+                throw new JHttpCException( "Failed to initialize SSL connection for repository: " + location.getUri() );
             }
+        }
+        else
+        {
+            logger.debug( "No SSL configuration present; no SSL context created." );
         }
 
         return null;
     }
 
     public void close()
-        throws IOException
+            throws IOException
     {
-        connectionManager.reallyShutdown();
+        //        connectionManager.reallyShutdown();
     }
 }

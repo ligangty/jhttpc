@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 Red Hat, Inc. (jdcasey@commonjava.org)
+ * Copyright (C) 2015 Red Hat, Inc. (jdcasey@commonjava.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.commonjava.util.jhttpc.util;
+package org.commonjava.util.jhttpc.INTERNAL.conn;
 
 import org.apache.http.HttpClientConnection;
 import org.apache.http.conn.ConnectionRequest;
@@ -23,25 +23,23 @@ import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
-import java.lang.ref.WeakReference;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class CloseBlockingConnectionManager
-        implements HttpClientConnectionManager
+        implements HttpClientConnectionManager, Closeable
 {
 
     private final Logger logger = LoggerFactory.getLogger( getClass() );
 
+    private final SiteConnectionConfig config;
+
     private final HttpClientConnectionManager connectionManager;
 
-    private final Set<WeakReference<ResourceTrackingClient>> clients = new HashSet<>();
-
-    public CloseBlockingConnectionManager( final HttpClientConnectionManager connectionManager )
+    public CloseBlockingConnectionManager( final SiteConnectionConfig config, final HttpClientConnectionManager connectionManager )
     {
+        this.config = config;
         this.connectionManager = connectionManager;
     }
 
@@ -103,21 +101,20 @@ public class CloseBlockingConnectionManager
         connectionManager.shutdown();
     }
 
-    public synchronized void registerClient( ResourceTrackingClient client )
+    @Override
+    public void close()
+            throws IOException
     {
-        clients.add( new WeakReference<>( client ) );
+        reallyShutdown();
     }
 
-    public synchronized void deregisterClient( ResourceTrackingClient client )
+    @Override
+    public String toString()
     {
-        for ( Iterator<WeakReference<ResourceTrackingClient>> it = clients.iterator(); it.hasNext(); )
-        {
-            WeakReference<ResourceTrackingClient> ref = it.next();
-            if ( ref != null && ref.get() == client )
-            {
-                it.remove();
-                break;
-            }
-        }
+        return "CloseBlockingConnectionManager{" +
+                "config=" + config +
+                ", connectionManager=" + connectionManager +
+                ", instance=" + super.hashCode() +
+                '}';
     }
 }
