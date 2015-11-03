@@ -26,6 +26,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.commonjava.util.jhttpc.HttpFactory;
 import org.commonjava.util.jhttpc.auth.MemoryPasswordManager;
 import org.commonjava.util.jhttpc.auth.PasswordManager;
+import org.commonjava.util.jhttpc.auth.PasswordType;
 import org.commonjava.util.jhttpc.model.SiteConfig;
 import org.commonjava.util.jhttpc.INTERNAL.util.SSLUtils;
 import org.commonjava.util.jhttpc.model.SiteConfigBuilder;
@@ -78,12 +79,10 @@ public abstract class AbstractIT
 
     protected abstract String[] getCertificatePaths();
 
-    protected SiteConfig getSiteConfig()
+    protected SiteConfigBuilder getSiteConfigBuilder()
             throws Exception
     {
-        SiteConfig config = new SiteConfigBuilder( getContainerId(), getSSLBaseUrl() ).withServerCertPem( getServerCertsPem() ).build();
-
-        return config;
+        return new SiteConfigBuilder( getContainerId(), getSSLBaseUrl() ).withServerCertPem( getServerCertsPem() );
     }
 
     @Before
@@ -101,6 +100,27 @@ public abstract class AbstractIT
         factory.close();
     }
 
+    public void clientSSLGet()
+            throws Exception
+    {
+        String path = "/private/" + name.getMethodName() + "/path/to/test";
+        String content = "This is a test.";
+
+        putContent( path, content );
+
+        SiteConfig config = getSiteConfigBuilder().withKeyCertPem(getClientKeyCertPem()).build();
+        passwordManager.bind( "test", config, PasswordType.KEY );
+
+        try (CloseableHttpClient client = factory.createClient( config ))
+        {
+            CloseableHttpResponse response = client.execute( new HttpGet( formatSSLUrl( path ) ) );
+            assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
+            String result = IOUtils.toString( response.getEntity().getContent() );
+
+            assertThat( result, equalTo( content ) );
+        }
+    }
+
     public void simpleSSLGet()
             throws Exception
     {
@@ -109,7 +129,7 @@ public abstract class AbstractIT
 
         putContent( path, content );
 
-        SiteConfig config = getSiteConfig();
+        SiteConfig config = getSiteConfigBuilder().build();
         try (CloseableHttpClient client = factory.createClient( config ))
         {
             CloseableHttpResponse response = client.execute( new HttpGet( formatSSLUrl( path ) ) );
@@ -190,6 +210,22 @@ public abstract class AbstractIT
         }
 
         return pem.toString();
+    }
+
+    protected String getClientKeyCertPem()
+            throws Exception
+    {
+        try (CloseableHttpClient client = factory.createClient())
+        {
+            CloseableHttpResponse response = client.execute( new HttpGet( formatUrl( SSL_CONFIG_BASE, "client.pem" ) ) );
+            assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
+            String result = IOUtils.toString( response.getEntity().getContent() );
+
+            System.out.println( result );
+            assertThat( result, notNullValue() );
+
+            return result;
+        }
     }
 
     protected synchronized String formatUrl( String... path )

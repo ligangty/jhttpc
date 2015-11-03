@@ -39,16 +39,12 @@ public abstract class AbstractSelfSignedIT
     }
 
     @Override
-    protected SiteConfig getSiteConfig()
+    protected SiteConfigBuilder getSiteConfigBuilder()
             throws Exception
     {
-        SiteConfig config =
-                new SiteConfigBuilder( getContainerId(), getSSLBaseUrl() ).withServerCertPem( getServerCertsPem() )
-                                                                          .withTrustType(
-                                                                                  SiteTrustType.TRUST_SELF_SIGNED )
-                                                                          .build();
-
-        return config;
+        return new SiteConfigBuilder( getContainerId(), getSSLBaseUrl() ).withServerCertPem( getServerCertsPem() )
+                                                                         .withTrustType(
+                                                                                 SiteTrustType.TRUST_SELF_SIGNED );
     }
 
 }
