@@ -46,7 +46,7 @@ public class AttributePasswordManager
             return null;
         }
 
-        return config.getAttribute( PASSWORD_PREFIX + id.getPasswordType().name() );
+        return config.getAttribute( PASSWORD_PREFIX + id.getPasswordType().name(), String.class );
     }
 
     public void bind( final String password, final SiteConfig loc, final PasswordType type )

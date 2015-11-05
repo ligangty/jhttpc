@@ -40,7 +40,7 @@
 
   <properties>
     <projectOwner>Red Hat, Inc.</projectOwner>
-    <javaVersion>1.8</javaVersion>
+    <javaVersion>1.7</javaVersion>
   </properties>
 
   <dependencyManagement>
@@ -137,6 +137,13 @@
   <build>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <configuration>
+            <source>1.6</source>
+            <target>1.6</target>
+          </configuration>
+        </plugin>
         <plugin>
           <!-- See: https://github.com/wouterd/docker-maven-plugin -->
           <groupId>net.wouterdanes.docker</groupId>

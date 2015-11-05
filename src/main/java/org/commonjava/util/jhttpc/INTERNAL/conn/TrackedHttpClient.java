@@ -42,9 +42,9 @@ public class TrackedHttpClient
 
     private final ConnectionManagerTracker managerWrapper;
 
-    private Set<WeakReference<HttpRequest>> requests = new HashSet<>();
+    private Set<WeakReference<HttpRequest>> requests = new HashSet<WeakReference<HttpRequest>>();
 
-    private Set<WeakReference<CloseableHttpResponse>> responses = new HashSet<>();
+    private Set<WeakReference<CloseableHttpResponse>> responses = new HashSet<WeakReference<CloseableHttpResponse>>();
 
     public TrackedHttpClient( CloseableHttpClient delegate, ConnectionManagerTracker managerWrapper )
     {
