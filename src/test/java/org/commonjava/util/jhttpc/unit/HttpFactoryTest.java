@@ -72,8 +72,10 @@ public class HttpFactoryTest
         server.expect( server.formatUrl( path ), 200, content );
 
         HttpFactory factory = new HttpFactory( new MemoryPasswordManager() );
-        try (CloseableHttpClient client = factory.createClient())
+        CloseableHttpClient client = null;
+        try
         {
+            client = factory.createClient();
             String result = client.execute( new HttpGet( server.formatUrl( path ) ), new ResponseHandler<String>()
             {
                 @Override
@@ -86,6 +88,10 @@ public class HttpFactoryTest
             } );
 
             assertThat( result, equalTo( content ) );
+        }
+        finally
+        {
+            IOUtils.closeQuietly( client );
         }
     }
 

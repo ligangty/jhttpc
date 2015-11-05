@@ -18,17 +18,16 @@ package org.commonjava.util.jhttpc.it;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.commonjava.util.jhttpc.HttpFactory;
+import org.commonjava.util.jhttpc.INTERNAL.util.SSLUtils;
 import org.commonjava.util.jhttpc.auth.MemoryPasswordManager;
 import org.commonjava.util.jhttpc.auth.PasswordManager;
 import org.commonjava.util.jhttpc.auth.PasswordType;
 import org.commonjava.util.jhttpc.model.SiteConfig;
-import org.commonjava.util.jhttpc.INTERNAL.util.SSLUtils;
 import org.commonjava.util.jhttpc.model.SiteConfigBuilder;
 import org.commonjava.util.jhttpc.util.UrlUtils;
 import org.junit.After;
@@ -44,9 +43,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
-/**
- * Created by jdcasey on 10/28/15.
- */
 public abstract class AbstractIT
 {
 
@@ -111,13 +107,19 @@ public abstract class AbstractIT
         SiteConfig config = getSiteConfigBuilder().withKeyCertPem(getClientKeyCertPem()).build();
         passwordManager.bind( "test", config, PasswordType.KEY );
 
-        try (CloseableHttpClient client = factory.createClient( config ))
+        CloseableHttpClient client = null;
+        try
         {
+            client = factory.createClient( config );
             CloseableHttpResponse response = client.execute( new HttpGet( formatSSLUrl( path ) ) );
             assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
             String result = IOUtils.toString( response.getEntity().getContent() );
 
             assertThat( result, equalTo( content ) );
+        }
+        finally
+        {
+            IOUtils.closeQuietly( client );
         }
     }
 
@@ -130,13 +132,19 @@ public abstract class AbstractIT
         putContent( path, content );
 
         SiteConfig config = getSiteConfigBuilder().build();
-        try (CloseableHttpClient client = factory.createClient( config ))
+        CloseableHttpClient client = null;
+        try
         {
+            client = factory.createClient( config );
             CloseableHttpResponse response = client.execute( new HttpGet( formatSSLUrl( path ) ) );
             assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
             String result = IOUtils.toString( response.getEntity().getContent() );
 
             assertThat( result, equalTo( content ) );
+        }
+        finally
+        {
+            IOUtils.closeQuietly( client );
         }
     }
 
@@ -148,13 +156,19 @@ public abstract class AbstractIT
 
         putContent( path, content );
 
-        try (CloseableHttpClient client = factory.createClient())
+        CloseableHttpClient client = null;
+        try
         {
+            client = factory.createClient();
             CloseableHttpResponse response = client.execute( new HttpGet( formatUrl( path ) ) );
             assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
             String result = IOUtils.toString( response.getEntity().getContent() );
 
             assertThat( result, equalTo( content ) );
+        }
+        finally
+        {
+            IOUtils.closeQuietly( client );
         }
     }
 
@@ -163,8 +177,10 @@ public abstract class AbstractIT
     {
         String[] paths = getCertificatePaths();
 
-        try (CloseableHttpClient client = factory.createClient())
+        CloseableHttpClient client = null;
+        try
         {
+            client = factory.createClient();
             for ( String path : paths )
             {
                 CloseableHttpResponse response = client.execute( new HttpGet( formatUrl( path ) ) );
@@ -174,6 +190,10 @@ public abstract class AbstractIT
                 System.out.println( result );
                 assertThat( result, notNullValue() );
             }
+        }
+        finally
+        {
+            IOUtils.closeQuietly( client );
         }
     }
 
@@ -195,8 +215,10 @@ public abstract class AbstractIT
         String[] paths = getCertificatePaths();
         StringBuilder pem = new StringBuilder();
 
-        try (CloseableHttpClient client = factory.createClient())
+        CloseableHttpClient client = null;
+        try
         {
+            client = factory.createClient();
             for ( String path : paths )
             {
                 CloseableHttpResponse response = client.execute( new HttpGet( formatUrl( path ) ) );
@@ -208,6 +230,10 @@ public abstract class AbstractIT
                 pem.append( result ).append( "\n" );
             }
         }
+        finally
+        {
+            IOUtils.closeQuietly( client );
+        }
 
         return pem.toString();
     }
@@ -215,8 +241,10 @@ public abstract class AbstractIT
     protected String getClientKeyCertPem()
             throws Exception
     {
-        try (CloseableHttpClient client = factory.createClient())
+        CloseableHttpClient client = null;
+        try
         {
+            client = factory.createClient();
             CloseableHttpResponse response = client.execute( new HttpGet( formatUrl( SSL_CONFIG_BASE, "client.pem" ) ) );
             assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
             String result = IOUtils.toString( response.getEntity().getContent() );
@@ -225,6 +253,10 @@ public abstract class AbstractIT
             assertThat( result, notNullValue() );
 
             return result;
+        }
+        finally
+        {
+            IOUtils.closeQuietly( client );
         }
     }
 
@@ -270,30 +302,36 @@ public abstract class AbstractIT
         return String.format( SSL_URL_FORMAT, host, port );
     }
 
-    protected void deleteContent( String path )
-            throws Exception
-    {
-        String url = formatUrl( CONTENT_MGMT_PATH, path );
-        HttpDelete put = new HttpDelete( url );
-
-        try (CloseableHttpClient client = factory.createClient())
-        {
-            CloseableHttpResponse response = client.execute( put );
-            int code = response.getStatusLine().getStatusCode();
-            if ( code != 404 && code != 204 )
-            {
-                String extra = "";
-                if ( response.getEntity() != null )
-                {
-                    String body = IOUtils.toString( response.getEntity().getContent() );
-                    extra = "\nBody:\n\n" + body;
-                }
-
-                Assert.fail( "Failed to delete content from: " + path + ".\nURL: " + url + "\nStatus: "
-                                     + response.getStatusLine() + extra );
-            }
-        }
-    }
+//    protected void deleteContent( String path )
+//            throws Exception
+//    {
+//        String url = formatUrl( CONTENT_MGMT_PATH, path );
+//        HttpDelete put = new HttpDelete( url );
+//
+//        CloseableHttpClient client = null;
+//        try
+//        {
+//            client = factory.createClient();
+//            CloseableHttpResponse response = client.execute( put );
+//            int code = response.getStatusLine().getStatusCode();
+//            if ( code != 404 && code != 204 )
+//            {
+//                String extra = "";
+//                if ( response.getEntity() != null )
+//                {
+//                    String body = IOUtils.toString( response.getEntity().getContent() );
+//                    extra = "\nBody:\n\n" + body;
+//                }
+//
+//                Assert.fail( "Failed to delete content from: " + path + ".\nURL: " + url + "\nStatus: "
+//                                     + response.getStatusLine() + extra );
+//            }
+//        }
+//        finally
+//        {
+//            IOUtils.closeQuietly( client );
+//        }
+//    }
 
     protected void putContent( String path, String content )
             throws Exception
@@ -302,8 +340,10 @@ public abstract class AbstractIT
         HttpPut put = new HttpPut( url );
         put.setEntity( new StringEntity( content ) );
 
-        try (CloseableHttpClient client = factory.createClient())
+        CloseableHttpClient client = null;
+        try
         {
+            client = factory.createClient();
             CloseableHttpResponse response = client.execute( put );
             int code = response.getStatusLine().getStatusCode();
             if ( code != 200 && code != 201 )
@@ -319,6 +359,10 @@ public abstract class AbstractIT
                         "Failed to put content to: " + path + ".\nURL: " + url + "\nStatus: " + response.getStatusLine()
                                 + extra );
             }
+        }
+        finally
+        {
+            IOUtils.closeQuietly( client );
         }
     }
 

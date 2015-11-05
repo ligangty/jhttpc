@@ -51,20 +51,15 @@ public final class SiteConfig
 
     private final String serverCertPem;
 
-    private Map<String, String> attributes;
+    private Map<String, Object> attributes;
 
     private final Integer requestTimeoutSeconds;
 
     private final Integer maxConnections;
 
-    public Map<String, String> getAttributes()
-    {
-        return attributes;
-    }
-
     SiteConfig( String id, String uri, String user, String proxyHost, Integer proxyPort, String proxyUser,
                        SiteTrustType trustType, String keyCertPem, String serverCertPem, Integer requestTimeoutSeconds,
-                       Integer maxConnections )
+                       Integer maxConnections, Map<String, Object> attributes )
     {
         this.id = id;
         this.uri = uri;
@@ -77,6 +72,12 @@ public final class SiteConfig
         this.serverCertPem = serverCertPem;
         this.requestTimeoutSeconds = requestTimeoutSeconds;
         this.maxConnections = maxConnections;
+        this.attributes = attributes == null ? new HashMap<String, Object>() : attributes;
+    }
+
+    public Map<String, Object> getAttributes()
+    {
+        return attributes;
     }
 
     public String getId()
@@ -143,17 +144,29 @@ public final class SiteConfig
         return requestTimeoutSeconds == null ? DEFAULT_REQUEST_TIMEOUT_SECONDS : requestTimeoutSeconds;
     }
 
-    public synchronized String setAttribute( String key, String value )
+    public <T> T getAttribute( String key, Class<T> type )
+    {
+        Object value = getAttribute( key );
+        return value == null ? null : type.cast( value );
+    }
+
+    public <T> T getAttribute( String key, Class<T> type, T defaultValue )
+    {
+        Object value = getAttribute( key );
+        return value == null ? defaultValue : type.cast( value );
+    }
+
+    public synchronized Object setAttribute( String key, String value )
     {
         if ( attributes == null )
         {
-            attributes = new HashMap<>();
+            attributes = new HashMap<String, Object>();
         }
 
         return attributes.put( key, value );
     }
 
-    public String getAttribute( String key )
+    public Object getAttribute( String key )
     {
         return attributes == null ? null : attributes.get( key );
     }
@@ -168,12 +181,14 @@ public final class SiteConfig
         return trustType == null ? SiteTrustType.DEFAULT : trustType;
     }
 
-    public void removeAttribute( String key )
+    public Object removeAttribute( String key )
     {
         if ( attributes != null )
         {
-            attributes.remove( key );
+            return attributes.remove( key );
         }
+
+        return null;
     }
 
     @Override

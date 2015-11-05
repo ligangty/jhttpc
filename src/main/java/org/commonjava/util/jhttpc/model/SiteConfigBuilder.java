@@ -51,13 +51,13 @@ public class SiteConfigBuilder
 
     private String serverCertPem;
 
-    private Map<String, String> attributes;
+    private Map<String, Object> attributes;
 
     private Integer requestTimeoutSeconds;
 
     private Integer maxConnections;
 
-    public Map<String, String> getAttributes()
+    public Map<String, Object> getAttributes()
     {
         return attributes;
     }
@@ -75,7 +75,7 @@ public class SiteConfigBuilder
     public SiteConfig build()
     {
         return new SiteConfig( id, uri, user, proxyHost, proxyPort, proxyUser, trustType, keyCertPem, serverCertPem,
-                               requestTimeoutSeconds, maxConnections );
+                               requestTimeoutSeconds, maxConnections, attributes );
     }
 
     public String getId()
@@ -142,17 +142,17 @@ public class SiteConfigBuilder
         return requestTimeoutSeconds == null ? DEFAULT_REQUEST_TIMEOUT_SECONDS : requestTimeoutSeconds;
     }
 
-    public synchronized String setAttribute( String key, String value )
+    public synchronized Object setAttribute( String key, Object value )
     {
         if ( attributes == null )
         {
-            attributes = new HashMap<>();
+            attributes = new HashMap<String, Object>();
         }
 
         return attributes.put( key, value );
     }
 
-    public String getAttribute( String key )
+    public Object getAttribute( String key )
     {
         return attributes == null ? null : attributes.get( key );
     }
@@ -211,7 +211,7 @@ public class SiteConfigBuilder
         return this;
     }
 
-    public SiteConfigBuilder withAttributes( Map<String, String> attributes )
+    public SiteConfigBuilder withAttributes( Map<String, Object> attributes )
     {
         this.attributes = attributes;
         return this;
