@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 Red Hat, Inc. (jdcasey@commonjava.org)
+ * Copyright (C) 2015 Red Hat, Inc. (jdcasey@commonjava.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,6 @@ package org.commonjava.util.jhttpc.util;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
-
-import static org.apache.commons.lang.StringUtils.isEmpty;
 
 public final class UrlUtils
 {

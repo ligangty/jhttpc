@@ -13,25 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.commonjava.util.jhttpc.auth;
+package org.commonjava.util.jhttpc.it.root;
 
-import org.commonjava.util.jhttpc.model.SiteConfig;
+import org.commonjava.util.jhttpc.it.inter.AbstractIntermediateSignedIT;
+import org.junit.Test;
 
-public interface PasswordManager
+/**
+ * Created by jdcasey on 11/2/15.
+ */
+public class SimpleSSLGet_Root_IT
+        extends AbstractRootSignedIT
 {
-
-    void bind( String password, SiteConfig config, PasswordType type );
-
-    void bind( String password, String siteId, PasswordType type );
-
-    void bind( String password, PasswordKey id );
-
-    void unbind( SiteConfig config, PasswordType type );
-
-    void unbind( String siteId, PasswordType type );
-
-    void unbind( PasswordKey id );
-
-    String lookup( PasswordKey id );
-
+    @Test
+    public void run()
+            throws Exception
+    {
+        super.simpleSSLGet();
+    }
 }

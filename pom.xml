@@ -1,6 +1,6 @@
- <!--
+<!--
 
-    Copyright (C) 2013 Red Hat, Inc. (jdcasey@commonjava.org)
+    Copyright (C) 2015 Red Hat, Inc. (jdcasey@commonjava.org)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@
   
   <groupId>org.commonjava.util</groupId>
   <artifactId>jhttpc</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>1.0-SNAPSHOT</version>
   
   <name>Java HTTP Client</name>
   <inceptionYear>2015</inceptionYear>
@@ -40,7 +40,7 @@
 
   <properties>
     <projectOwner>Red Hat, Inc.</projectOwner>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <javaVersion>1.8</javaVersion>
   </properties>
 
   <dependencyManagement>
@@ -52,7 +52,12 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      
+
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>18.0</version>
+      </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcprov-jdk15on</artifactId>
@@ -78,7 +83,11 @@
   </dependencyManagement>
   
   <dependencies>
-    
+
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
@@ -126,115 +135,147 @@
   </dependencies>
 
   <build>
-    <plugins>
-      <plugin>
-        <groupId>net.wouterdanes.docker</groupId>
-        <artifactId>docker-maven-plugin</artifactId>
-        <version>3.1.0</version>
-        <executions>
-          <execution>
-            <id>start-IT-containers</id>
-            <goals>
-              <goal>start-containers</goal>
-            </goals>
-            <phase>pre-integration-test</phase>
-            <configuration>
-              <providerName>local</providerName>
-              <containers>
-                <container>
-                  <id>selfsigned</id>
-                  <image>docker.io/buildchimp/ssl-dojo:dev</image>
-                  <env>
-                    <CA_TYPE>self</CA_TYPE>
-                    <CA_HOST>test.myco.com</CA_HOST>
-                  </env>
-                  <hostname>test.myco.com</hostname>
-                </container>
-                <container>
-                  <id>rootsigned</id>
-                  <image>docker.io/buildchimp/ssl-dojo:dev</image>
-                  <env>
-                    <CA_TYPE>single</CA_TYPE>
-                    <CA_HOST>test.myco.com</CA_HOST>
-                  </env>
-                  <hostname>test.myco.com</hostname>
-                </container>
-                <container>
-                  <id>intersigned</id>
-                  <image>docker.io/buildchimp/ssl-dojo:dev</image>
-                  <env>
-                    <CA_TYPE>multi</CA_TYPE>
-                    <CA_HOST>test.myco.com</CA_HOST>
-                  </env>
-                  <hostname>test.myco.com</hostname>
-                </container>
-              </containers>
-            </configuration>
-          </execution>
-          <execution>
-            <id>stop-IT-containers</id>
-            <goals>
-              <goal>stop-containers</goal>
-            </goals>
-            <phase>post-integration-test</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <version>1.8</version>
-        <executions>
-          <execution>
-            <id>record-docker-properties</id>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <phase>pre-integration-test</phase>
-            <configuration>
-              <target>
-                <echo file="${project.build.directory}/docker.properties">
-                  <![CDATA[
-docker.containers.selfsigned.ports.80/tcp.host=${docker.containers.selfsigned.ports.80/tcp.host}
-docker.containers.selfsigned.ports.443/tcp.host=${docker.containers.selfsigned.ports.443/tcp.host}
-docker.containers.selfsigned.ports.80/tcp.port=${docker.containers.selfsigned.ports.80/tcp.port}
-docker.containers.selfsigned.ports.443/tcp.port=${docker.containers.selfsigned.ports.443/tcp.port}
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <!-- See: https://github.com/wouterd/docker-maven-plugin -->
+          <groupId>net.wouterdanes.docker</groupId>
+          <artifactId>docker-maven-plugin</artifactId>
+          <version>3.1.0</version>
+          <executions>
+            <execution>
+              <id>start-IT-containers</id>
+              <goals>
+                <goal>start-containers</goal>
+              </goals>
+              <phase>pre-integration-test</phase>
+              <configuration>
+                <providerName>${dockerProvider}</providerName>
+                <containers>
+                  <container>
+                    <id>selfsigned</id>
+                    <image>docker.io/buildchimp/ssl-dojo:dev</image>
+                    <env>
+                      <CA_TYPE>self</CA_TYPE>
+                      <CA_HOST>test.myco.com</CA_HOST>
+                    </env>
+                    <hostname>test.myco.com</hostname>
+                  </container>
+                  <container>
+                    <id>rootsigned</id>
+                    <image>docker.io/buildchimp/ssl-dojo:dev</image>
+                    <env>
+                      <CA_TYPE>single</CA_TYPE>
+                      <CA_HOST>test.myco.com</CA_HOST>
+                    </env>
+                    <hostname>test.myco.com</hostname>
+                  </container>
+                  <container>
+                    <id>intersigned</id>
+                    <image>docker.io/buildchimp/ssl-dojo:dev</image>
+                    <env>
+                      <CA_TYPE>multi</CA_TYPE>
+                      <CA_HOST>test.myco.com</CA_HOST>
+                    </env>
+                    <hostname>test.myco.com</hostname>
+                  </container>
+                </containers>
+              </configuration>
+            </execution>
+            <execution>
+              <id>stop-IT-containers</id>
+              <goals>
+                <goal>stop-containers</goal>
+              </goals>
+              <phase>post-integration-test</phase>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <artifactId>maven-antrun-plugin</artifactId>
+          <version>1.8</version>
+          <executions>
+            <execution>
+              <id>record-docker-properties</id>
+              <goals>
+                <goal>run</goal>
+              </goals>
+              <phase>pre-integration-test</phase>
+              <configuration>
+                <target>
+                  <echo file="${project.build.directory}/docker.properties">
+                    <![CDATA[
+  docker.containers.selfsigned.ports.80/tcp.host=${docker.containers.selfsigned.ports.80/tcp.host}
+  docker.containers.selfsigned.ports.443/tcp.host=${docker.containers.selfsigned.ports.443/tcp.host}
+  docker.containers.selfsigned.ports.80/tcp.port=${docker.containers.selfsigned.ports.80/tcp.port}
+  docker.containers.selfsigned.ports.443/tcp.port=${docker.containers.selfsigned.ports.443/tcp.port}
 
-docker.containers.rootsigned.ports.80/tcp.host=${docker.containers.rootsigned.ports.80/tcp.host}
-docker.containers.rootsigned.ports.443/tcp.host=${docker.containers.rootsigned.ports.443/tcp.host}
-docker.containers.rootsigned.ports.80/tcp.port=${docker.containers.rootsigned.ports.80/tcp.port}
-docker.containers.rootsigned.ports.443/tcp.port=${docker.containers.rootsigned.ports.443/tcp.port}
+  docker.containers.rootsigned.ports.80/tcp.host=${docker.containers.rootsigned.ports.80/tcp.host}
+  docker.containers.rootsigned.ports.443/tcp.host=${docker.containers.rootsigned.ports.443/tcp.host}
+  docker.containers.rootsigned.ports.80/tcp.port=${docker.containers.rootsigned.ports.80/tcp.port}
+  docker.containers.rootsigned.ports.443/tcp.port=${docker.containers.rootsigned.ports.443/tcp.port}
 
-docker.containers.intersigned.ports.80/tcp.host=${docker.containers.intersigned.ports.80/tcp.host}
-docker.containers.intersigned.ports.443/tcp.host=${docker.containers.intersigned.ports.443/tcp.host}
-docker.containers.intersigned.ports.80/tcp.port=${docker.containers.intersigned.ports.80/tcp.port}
-docker.containers.intersigned.ports.443/tcp.port=${docker.containers.intersigned.ports.443/tcp.port}
-]]>
-                </echo>
-              </target>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-failsafe-plugin</artifactId>
-        <version>2.19</version>
-        <executions>
-          <execution>
-            <id>functional-tests</id>
-            <goals>
-              <goal>integration-test</goal>
-              <goal>verify</goal>
-            </goals>
-            <configuration>
-              <includes>
-                <include>**/*IT.java</include>
-              </includes>
-              <systemPropertiesFile>${project.build.directory}/docker.properties</systemPropertiesFile>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
+  docker.containers.intersigned.ports.80/tcp.host=${docker.containers.intersigned.ports.80/tcp.host}
+  docker.containers.intersigned.ports.443/tcp.host=${docker.containers.intersigned.ports.443/tcp.host}
+  docker.containers.intersigned.ports.80/tcp.port=${docker.containers.intersigned.ports.80/tcp.port}
+  docker.containers.intersigned.ports.443/tcp.port=${docker.containers.intersigned.ports.443/tcp.port}
+
+  javax.net.debug=all
+  ]]>
+                  </echo>
+                </target>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>2.19</version>
+          <executions>
+            <execution>
+              <id>functional-tests</id>
+              <goals>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+              </goals>
+              <configuration>
+                <includes>
+                  <include>**/*IT.java</include>
+                </includes>
+                <forkCount>1C</forkCount>
+                <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                <systemPropertiesFile>${project.build.directory}/docker.properties</systemPropertiesFile>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
   </build>
+
+  <profiles>
+    <profile>
+      <id>local-its</id>
+
+      <properties>
+        <dockerProvider>local</dockerProvider>
+      </properties>
+
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>net.wouterdanes.docker</groupId>
+            <artifactId>docker-maven-plugin</artifactId>
+          </plugin>
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+          </plugin>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
   
 </project>

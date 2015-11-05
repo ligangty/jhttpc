@@ -13,25 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.commonjava.util.jhttpc.auth;
+package org.commonjava.util.jhttpc.it.root;
 
-import org.commonjava.util.jhttpc.model.SiteConfig;
+import org.commonjava.util.jhttpc.it.AbstractIT;
 
-public interface PasswordManager
+/**
+ * Created by jdcasey on 10/30/15.
+ */
+public abstract class AbstractRootSignedIT
+        extends AbstractIT
 {
+    @Override
+    protected String getContainerId()
+    {
+        return "rootsigned";
+    }
 
-    void bind( String password, SiteConfig config, PasswordType type );
-
-    void bind( String password, String siteId, PasswordType type );
-
-    void bind( String password, PasswordKey id );
-
-    void unbind( SiteConfig config, PasswordType type );
-
-    void unbind( String siteId, PasswordType type );
-
-    void unbind( PasswordKey id );
-
-    String lookup( PasswordKey id );
+    @Override
+    protected String[] getCertificatePaths()
+    {
+        return new String[]{SITE_CERT_PATH};
+//        return new String[]{SSL_CONFIG_BASE + "/root.crt", SITE_CERT_PATH};
+    }
 
 }
