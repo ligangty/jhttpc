@@ -61,7 +61,12 @@
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcprov-jdk15on</artifactId>
-        <version>1.50</version>
+        <version>1.53</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcpkix-jdk15on</artifactId>
+        <version>1.53</version>
       </dependency>
       <dependency>
         <groupId>commons-lang</groupId>
@@ -103,6 +108,10 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk15on</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpkix-jdk15on</artifactId>
     </dependency>
     <dependency>
       <groupId>commons-io</groupId>
@@ -167,6 +176,7 @@
                       <CA_HOST>test.myco.com</CA_HOST>
                     </env>
                     <hostname>test.myco.com</hostname>
+                    <waitForStartup>Setting LogLevel for all modules to trace6</waitForStartup>
                   </container>
                   <container>
                     <id>rootsigned</id>
@@ -176,6 +186,7 @@
                       <CA_HOST>test.myco.com</CA_HOST>
                     </env>
                     <hostname>test.myco.com</hostname>
+                    <waitForStartup>Setting LogLevel for all modules to trace6</waitForStartup>
                   </container>
                   <container>
                     <id>intersigned</id>
@@ -185,6 +196,7 @@
                       <CA_HOST>test.myco.com</CA_HOST>
                     </env>
                     <hostname>test.myco.com</hostname>
+                    <waitForStartup>Setting LogLevel for all modules to trace6</waitForStartup>
                   </container>
                 </containers>
               </configuration>
@@ -212,23 +224,23 @@
                 <target>
                   <echo file="${project.build.directory}/docker.properties">
                     <![CDATA[
-  docker.containers.selfsigned.ports.80/tcp.host=${docker.containers.selfsigned.ports.80/tcp.host}
-  docker.containers.selfsigned.ports.443/tcp.host=${docker.containers.selfsigned.ports.443/tcp.host}
-  docker.containers.selfsigned.ports.80/tcp.port=${docker.containers.selfsigned.ports.80/tcp.port}
-  docker.containers.selfsigned.ports.443/tcp.port=${docker.containers.selfsigned.ports.443/tcp.port}
+docker.containers.selfsigned.ports.80/tcp.host=${docker.containers.selfsigned.ports.80/tcp.host}
+docker.containers.selfsigned.ports.443/tcp.host=${docker.containers.selfsigned.ports.443/tcp.host}
+docker.containers.selfsigned.ports.80/tcp.port=${docker.containers.selfsigned.ports.80/tcp.port}
+docker.containers.selfsigned.ports.443/tcp.port=${docker.containers.selfsigned.ports.443/tcp.port}
 
-  docker.containers.rootsigned.ports.80/tcp.host=${docker.containers.rootsigned.ports.80/tcp.host}
-  docker.containers.rootsigned.ports.443/tcp.host=${docker.containers.rootsigned.ports.443/tcp.host}
-  docker.containers.rootsigned.ports.80/tcp.port=${docker.containers.rootsigned.ports.80/tcp.port}
-  docker.containers.rootsigned.ports.443/tcp.port=${docker.containers.rootsigned.ports.443/tcp.port}
+docker.containers.rootsigned.ports.80/tcp.host=${docker.containers.rootsigned.ports.80/tcp.host}
+docker.containers.rootsigned.ports.443/tcp.host=${docker.containers.rootsigned.ports.443/tcp.host}
+docker.containers.rootsigned.ports.80/tcp.port=${docker.containers.rootsigned.ports.80/tcp.port}
+docker.containers.rootsigned.ports.443/tcp.port=${docker.containers.rootsigned.ports.443/tcp.port}
 
-  docker.containers.intersigned.ports.80/tcp.host=${docker.containers.intersigned.ports.80/tcp.host}
-  docker.containers.intersigned.ports.443/tcp.host=${docker.containers.intersigned.ports.443/tcp.host}
-  docker.containers.intersigned.ports.80/tcp.port=${docker.containers.intersigned.ports.80/tcp.port}
-  docker.containers.intersigned.ports.443/tcp.port=${docker.containers.intersigned.ports.443/tcp.port}
+docker.containers.intersigned.ports.80/tcp.host=${docker.containers.intersigned.ports.80/tcp.host}
+docker.containers.intersigned.ports.443/tcp.host=${docker.containers.intersigned.ports.443/tcp.host}
+docker.containers.intersigned.ports.80/tcp.port=${docker.containers.intersigned.ports.80/tcp.port}
+docker.containers.intersigned.ports.443/tcp.port=${docker.containers.intersigned.ports.443/tcp.port}
 
-  javax.net.debug=all
-  ]]>
+javax.net.debug=ssl:handshake:verbose
+]]>
                   </echo>
                 </target>
               </configuration>

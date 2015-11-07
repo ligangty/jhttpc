@@ -17,6 +17,7 @@ package org.commonjava.util.jhttpc.it;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
@@ -34,10 +35,13 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TestName;
 
 import java.security.KeyStore;
+import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -64,38 +68,7 @@ public abstract class AbstractIT
 
     protected static final String SITE_CERT_PATH = SSL_CONFIG_BASE + "/site.crt";
 
-    @Rule
-    public TestName name = new TestName();
-
-    protected HttpFactory factory;
-
-    protected PasswordManager passwordManager;
-
-    protected abstract String getContainerId();
-
-    protected abstract String[] getCertificatePaths();
-
-    protected SiteConfigBuilder getSiteConfigBuilder()
-            throws Exception
-    {
-        return new SiteConfigBuilder( getContainerId(), getSSLBaseUrl() ).withServerCertPem( getServerCertsPem() );
-    }
-
-    @Before
-    public void setup()
-            throws Exception
-    {
-        passwordManager = new MemoryPasswordManager();
-        factory = new HttpFactory( passwordManager );
-    }
-
-    @After
-    public void teardown()
-            throws Exception
-    {
-        factory.close();
-    }
-
+    @Test
     public void clientSSLGet()
             throws Exception
     {
@@ -117,12 +90,17 @@ public abstract class AbstractIT
 
             assertThat( result, equalTo( content ) );
         }
+        catch ( Exception e )
+        {
+            processError( e );
+        }
         finally
         {
             IOUtils.closeQuietly( client );
         }
     }
 
+    @Test
     public void simpleSSLGet()
             throws Exception
     {
@@ -142,12 +120,17 @@ public abstract class AbstractIT
 
             assertThat( result, equalTo( content ) );
         }
+        catch ( Exception e )
+        {
+            processError( e );
+        }
         finally
         {
             IOUtils.closeQuietly( client );
         }
     }
 
+    @Test
     public void simpleSingleGet_NoSSL()
             throws Exception
     {
@@ -166,12 +149,17 @@ public abstract class AbstractIT
 
             assertThat( result, equalTo( content ) );
         }
+        catch ( Exception e )
+        {
+            processError( e );
+        }
         finally
         {
             IOUtils.closeQuietly( client );
         }
     }
 
+    @Test
     public void retrieveSiteCertificatePems()
             throws Exception
     {
@@ -191,12 +179,17 @@ public abstract class AbstractIT
                 assertThat( result, notNullValue() );
             }
         }
+        catch ( Exception e )
+        {
+            processError( e );
+        }
         finally
         {
             IOUtils.closeQuietly( client );
         }
     }
 
+    @Test
     public void decodeSiteCertificatePems()
             throws Exception
     {
@@ -209,6 +202,41 @@ public abstract class AbstractIT
         }
     }
 
+    @Rule
+    public TestName name = new TestName();
+
+    protected HttpFactory factory;
+
+    protected PasswordManager passwordManager;
+
+    protected abstract String getContainerId();
+
+    protected abstract String[] getCertificatePaths();
+
+    protected SiteConfigBuilder getSiteConfigBuilder()
+            throws Exception
+    {
+        return new SiteConfigBuilder( getContainerId(), getSSLBaseUrl() ).withServerCertPem( getServerCertsPem() );
+    }
+
+    @Before
+    public void setup()
+            throws Exception
+    {
+        System.out.println("\n\n #### SETUP: " + name.getMethodName() + " #### \n\n");
+        passwordManager = new MemoryPasswordManager();
+        factory = new HttpFactory( passwordManager );
+        System.out.println("\n\n #### START: " + name.getMethodName() + " #### \n\n");
+    }
+
+    @After
+    public void teardown()
+            throws Exception
+    {
+        factory.close();
+        System.out.println("\n\n #### END: " + name.getMethodName() + "#### \n\n");
+    }
+
     protected String getServerCertsPem()
             throws Exception
     {
@@ -219,6 +247,7 @@ public abstract class AbstractIT
         try
         {
             client = factory.createClient();
+            System.out.println("\n\n ##### START: " + name.getMethodName() + " :: server.pem #####\n\n" );
             for ( String path : paths )
             {
                 CloseableHttpResponse response = client.execute( new HttpGet( formatUrl( path ) ) );
@@ -229,6 +258,11 @@ public abstract class AbstractIT
                 assertThat( result, notNullValue() );
                 pem.append( result ).append( "\n" );
             }
+            System.out.println("\n\n ##### END: " + name.getMethodName() + " :: server.pem #####\n\n" );
+        }
+        catch ( Exception e )
+        {
+            processError( e );
         }
         finally
         {
@@ -238,6 +272,36 @@ public abstract class AbstractIT
         return pem.toString();
     }
 
+    private void processError( Exception e )
+            throws Exception
+    {
+        List<String> paths = Arrays.asList("logs/error_log", "logs/ssl_error_log");
+
+        CloseableHttpClient client = null;
+        try
+        {
+            client = factory.createClient();
+            for ( String path : paths )
+            {
+                CloseableHttpResponse response = client.execute( new HttpGet( formatUrl( path ) ) );
+
+                String result = IOUtils.toString( response.getEntity().getContent() );
+                System.out.println( result );
+            }
+        }
+        catch ( Exception err )
+        {
+            System.out.println("Failed to retrieve server logs after error. Reason: " + err.getMessage());
+            err.printStackTrace();
+        }
+        finally
+        {
+            IOUtils.closeQuietly( client );
+        }
+
+        throw e;
+    }
+
     protected String getClientKeyCertPem()
             throws Exception
     {
@@ -245,6 +309,7 @@ public abstract class AbstractIT
         try
         {
             client = factory.createClient();
+            System.out.println("\n\n ##### START: " + name.getMethodName() + " :: client.pem #####\n\n" );
             CloseableHttpResponse response = client.execute( new HttpGet( formatUrl( SSL_CONFIG_BASE, "client.pem" ) ) );
             assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
             String result = IOUtils.toString( response.getEntity().getContent() );
@@ -252,6 +317,7 @@ public abstract class AbstractIT
             System.out.println( result );
             assertThat( result, notNullValue() );
 
+            System.out.println("\n\n ##### END: " + name.getMethodName() + " :: client.pem #####\n\n" );
             return result;
         }
         finally
@@ -359,6 +425,10 @@ public abstract class AbstractIT
                         "Failed to put content to: " + path + ".\nURL: " + url + "\nStatus: " + response.getStatusLine()
                                 + extra );
             }
+        }
+        catch ( Exception e )
+        {
+            processError( e );
         }
         finally
         {

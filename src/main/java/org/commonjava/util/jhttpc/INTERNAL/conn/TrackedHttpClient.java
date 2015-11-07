@@ -126,7 +126,10 @@ public class TrackedHttpClient
             throws IOException
     {
         HttpUtils.cleanupResources( delegate, requests, responses );
-        managerWrapper.release();
+        if ( managerWrapper != null )
+        {
+            managerWrapper.release();
+        }
     }
 
     @Override

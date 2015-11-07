@@ -29,8 +29,11 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
+import org.apache.http.ssl.PrivateKeyStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
+import org.bouncycastle.pkcs.PKCSException;
+import org.commonjava.util.jhttpc.INTERNAL.util.MonolithicKeyStrategy;
 import org.commonjava.util.jhttpc.auth.PasswordKey;
 import org.commonjava.util.jhttpc.auth.PasswordManager;
 import org.commonjava.util.jhttpc.auth.PasswordType;
@@ -235,6 +238,11 @@ public class HttpFactory
                 throw new JHttpCException( "Failed to read client SSL key/certificate from: %s. Reason: %s", e,
                                            location, e.getMessage() );
             }
+            catch ( PKCSException e )
+            {
+                throw new JHttpCException( "Failed to read client SSL key/certificate from: %s. Reason: %s", e,
+                                           location, e.getMessage() );
+            }
         }
         else
         {
@@ -295,7 +303,8 @@ public class HttpFactory
                 if ( ks != null )
                 {
                     logger.debug( "Loading key material for SSL context..." );
-                    sslBuilder.loadKeyMaterial( ks, kcPass.toCharArray() );
+                    PrivateKeyStrategy pkStrategy = new MonolithicKeyStrategy();
+                    sslBuilder.loadKeyMaterial( ks, kcPass.toCharArray(), pkStrategy );
                 }
 
                 if ( ts != null )
