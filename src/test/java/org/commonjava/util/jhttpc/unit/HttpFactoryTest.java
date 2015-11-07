@@ -26,6 +26,7 @@ import org.commonjava.test.http.expect.ExpectationServer;
 import org.commonjava.util.jhttpc.HttpFactory;
 import org.commonjava.util.jhttpc.auth.MemoryPasswordManager;
 import org.commonjava.util.jhttpc.auth.PasswordManager;
+import org.commonjava.util.jhttpc.auth.PasswordType;
 import org.commonjava.util.jhttpc.model.SiteConfig;
 import org.commonjava.util.jhttpc.model.SiteConfigBuilder;
 import org.commonjava.util.jhttpc.model.SiteTrustType;
@@ -33,7 +34,9 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import javax.crypto.Cipher;
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -96,23 +99,44 @@ public class HttpFactoryTest
     }
 
     @Test
+    public void checkKeyStrength()
+            throws NoSuchAlgorithmException
+    {
+        int allowedKeyLength = 0;
+
+        assertThat( Cipher.getMaxAllowedKeyLength( "AES" ) > 128, equalTo( true ) );
+
+        System.out.println("The allowed key length for AES is: " + allowedKeyLength);    }
+
+    @Test
     @Ignore( "This is for debugging problems that crop up in the functional test suite." )
     public void simpleSSLGet_DockerContainerDriven()
             throws Exception
     {
-        String path = "ssl-config/site.crt";
-        String downloadUrl = "http://localhost:9000/" + path;
+        String host = "172.17.1.69";
+        String sitePath = "ssl-config/site.crt";
+        String siteDownloadUrl = "http://" + host + "/" + sitePath;
+        String clientPath = "ssl-config/client.pem";
+        String clientDownloadUrl = "http://" + host + "/" + clientPath;
         CloseableHttpClient client = null;
 
-        String certPem = null;
+        String serverCertPem = null;
+        String clientCertPem = null;
         try
         {
             client = factory.createClient();
-            HttpGet get = new HttpGet( downloadUrl );
+            HttpGet get = new HttpGet( siteDownloadUrl );
             CloseableHttpResponse response = client.execute( get );
             if ( response.getStatusLine().getStatusCode() == 200 )
             {
-                IOUtils.toString( response.getEntity().getContent() );
+                serverCertPem = IOUtils.toString( response.getEntity().getContent() );
+            }
+
+            get = new HttpGet( clientDownloadUrl );
+            response = client.execute( get );
+            if ( response.getStatusLine().getStatusCode() == 200 )
+            {
+                clientCertPem = IOUtils.toString( response.getEntity().getContent() );
             }
         }
         finally
@@ -120,37 +144,41 @@ public class HttpFactoryTest
             IOUtils.closeQuietly( client );
         }
 
-        assertThat( certPem, notNullValue() );
+        assertThat( serverCertPem, notNullValue() );
+        assertThat( clientCertPem, notNullValue() );
 
-//                "-----BEGIN CERTIFICATE-----\n" + "MIIEOTCCAyGgAwIBAgIJAPRXgKBSJE68MA0GCSqGSIb3DQEBCwUAMIGQMQswCQYD\n"
-//                        + "VQQGEwJVUzEPMA0GA1UECAwGS2Fuc2FzMRMwEQYDVQQHDApTbWFsbHZpbGxlMQ0w\n"
-//                        + "CwYDVQQKDARUZXN0MQwwCgYDVQQLDANXZWIxFjAUBgNVBAMMDXRlc3QubXljby5j\n"
-//                        + "b20xJjAkBgkqhkiG9w0BCQEWF3NpdGVhZG1pbkB0ZXN0Lm15Y28uY29tMB4XDTE1\n"
-//                        + "MTEwMjIxNTE1OFoXDTE2MTEwMTIxNTE1OFowgZAxCzAJBgNVBAYTAlVTMQ8wDQYD\n"
-//                        + "VQQIDAZLYW5zYXMxEzARBgNVBAcMClNtYWxsdmlsbGUxDTALBgNVBAoMBFRlc3Qx\n"
-//                        + "DDAKBgNVBAsMA1dlYjEWMBQGA1UEAwwNdGVzdC5teWNvLmNvbTEmMCQGCSqGSIb3\n"
-//                        + "DQEJARYXc2l0ZWFkbWluQHRlc3QubXljby5jb20wggEiMA0GCSqGSIb3DQEBAQUA\n"
-//                        + "A4IBDwAwggEKAoIBAQCpvPafp14tr0y724/y+4nlo8a18niCxe7X2kZ6lJfdMaJ0\n"
-//                        + "0xCyhhw1/jiiQtHon/1zS1PSc7152QXlWA90YqnVZpPAPINLekqXG2Wh7kcxRhJg\n"
-//                        + "vldd/Bek56l6dsPU2OrB8vFAvkM6vh9XRG/HizHk/iDOe0bwRFNIxYMi2FCFzXC7\n"
-//                        + "SRBDAixO98YXtMgIe2JEEysPgVBjCsOLZLzmlh1elVvtdAgQp6rjwEvxK9+usD66\n"
-//                        + "tbUghcAH6m5OD+m8cx6PUgBX5jHZuiupXnBNzhfbh9nPFwY76Pc3DHr9gsEyQStE\n"
-//                        + "a/As10V0/xSuWCilzVEdvFSlbs9lJkMrt4cVyLHtAgMBAAGjgZMwgZAwHQYDVR0O\n"
-//                        + "BBYEFEz6Wi94EBTh6jab9mcHu2iyPnE3MB8GA1UdIwQYMBaAFEz6Wi94EBTh6jab\n"
-//                        + "9mcHu2iyPnE3MAwGA1UdEwQFMAMBAf8wQAYDVR0RBDkwN4EXc2l0ZWFkbWluQHRl\n"
-//                        + "c3QubXljby5jb22HBKwRAEaCCWxvY2FsaG9zdIILMTcyLjE3LjAuNzAwDQYJKoZI\n"
-//                        + "hvcNAQELBQADggEBAELtpFGcd1OXNi3j8pTh24UiNAYiv9y/APOdyllr2YDxGK2h\n"
-//                        + "h0tEpsDXVIblVZppCcKwefkQLW81h39NjQOV6mCNgGlgSzDTdaYSkdBF2q2rtU6G\n"
-//                        + "LPy4ai4g2roccELCJ1QZ2s7EmJYenuUTwypieTMLOazopOsF3RdDYRqJZwWO5gGF\n"
-//                        + "zsVQ1O9RRzQJI5nTRTF/1R/cHSQBwyzPigACfbl7hWx7usyRS396fpvi/ulhQyy9\n"
-//                        + "Tzd0N6r3sr7d6cvXkqIHoImr0xk3Mww6BErm7BortT0OE+XEAPOQsfbrogEvCOV1\n"
-//                        + "yPKB1vtjssTVzCO10GiQO4D72NfPSuV3Q6QEMzk=\n" + "-----END CERTIFICATE-----";
+        //                "-----BEGIN CERTIFICATE-----\n" + "MIIEOTCCAyGgAwIBAgIJAPRXgKBSJE68MA0GCSqGSIb3DQEBCwUAMIGQMQswCQYD\n"
+        //                        + "VQQGEwJVUzEPMA0GA1UECAwGS2Fuc2FzMRMwEQYDVQQHDApTbWFsbHZpbGxlMQ0w\n"
+        //                        + "CwYDVQQKDARUZXN0MQwwCgYDVQQLDANXZWIxFjAUBgNVBAMMDXRlc3QubXljby5j\n"
+        //                        + "b20xJjAkBgkqhkiG9w0BCQEWF3NpdGVhZG1pbkB0ZXN0Lm15Y28uY29tMB4XDTE1\n"
+        //                        + "MTEwMjIxNTE1OFoXDTE2MTEwMTIxNTE1OFowgZAxCzAJBgNVBAYTAlVTMQ8wDQYD\n"
+        //                        + "VQQIDAZLYW5zYXMxEzARBgNVBAcMClNtYWxsdmlsbGUxDTALBgNVBAoMBFRlc3Qx\n"
+        //                        + "DDAKBgNVBAsMA1dlYjEWMBQGA1UEAwwNdGVzdC5teWNvLmNvbTEmMCQGCSqGSIb3\n"
+        //                        + "DQEJARYXc2l0ZWFkbWluQHRlc3QubXljby5jb20wggEiMA0GCSqGSIb3DQEBAQUA\n"
+        //                        + "A4IBDwAwggEKAoIBAQCpvPafp14tr0y724/y+4nlo8a18niCxe7X2kZ6lJfdMaJ0\n"
+        //                        + "0xCyhhw1/jiiQtHon/1zS1PSc7152QXlWA90YqnVZpPAPINLekqXG2Wh7kcxRhJg\n"
+        //                        + "vldd/Bek56l6dsPU2OrB8vFAvkM6vh9XRG/HizHk/iDOe0bwRFNIxYMi2FCFzXC7\n"
+        //                        + "SRBDAixO98YXtMgIe2JEEysPgVBjCsOLZLzmlh1elVvtdAgQp6rjwEvxK9+usD66\n"
+        //                        + "tbUghcAH6m5OD+m8cx6PUgBX5jHZuiupXnBNzhfbh9nPFwY76Pc3DHr9gsEyQStE\n"
+        //                        + "a/As10V0/xSuWCilzVEdvFSlbs9lJkMrt4cVyLHtAgMBAAGjgZMwgZAwHQYDVR0O\n"
+        //                        + "BBYEFEz6Wi94EBTh6jab9mcHu2iyPnE3MB8GA1UdIwQYMBaAFEz6Wi94EBTh6jab\n"
+        //                        + "9mcHu2iyPnE3MAwGA1UdEwQFMAMBAf8wQAYDVR0RBDkwN4EXc2l0ZWFkbWluQHRl\n"
+        //                        + "c3QubXljby5jb22HBKwRAEaCCWxvY2FsaG9zdIILMTcyLjE3LjAuNzAwDQYJKoZI\n"
+        //                        + "hvcNAQELBQADggEBAELtpFGcd1OXNi3j8pTh24UiNAYiv9y/APOdyllr2YDxGK2h\n"
+        //                        + "h0tEpsDXVIblVZppCcKwefkQLW81h39NjQOV6mCNgGlgSzDTdaYSkdBF2q2rtU6G\n"
+        //                        + "LPy4ai4g2roccELCJ1QZ2s7EmJYenuUTwypieTMLOazopOsF3RdDYRqJZwWO5gGF\n"
+        //                        + "zsVQ1O9RRzQJI5nTRTF/1R/cHSQBwyzPigACfbl7hWx7usyRS396fpvi/ulhQyy9\n"
+        //                        + "Tzd0N6r3sr7d6cvXkqIHoImr0xk3Mww6BErm7BortT0OE+XEAPOQsfbrogEvCOV1\n"
+        //                        + "yPKB1vtjssTVzCO10GiQO4D72NfPSuV3Q6QEMzk=\n" + "-----END CERTIFICATE-----";
 
-        String baseUrl = "https://localhost:9443/";
-        String url = baseUrl + path;
-        SiteConfig config = new SiteConfigBuilder( "test", baseUrl ).withTrustType( SiteTrustType.TRUST_SELF_SIGNED )
-                                                                    .withServerCertPem( certPem )
+        String baseUrl = "https://" + host + ":443/";
+        String url = baseUrl + sitePath;
+        SiteConfig config = new SiteConfigBuilder( "test", baseUrl )//.withTrustType( SiteTrustType.TRUST_SELF_SIGNED )
+                                                                    .withServerCertPem( serverCertPem )
+                                                                    .withKeyCertPem( clientCertPem )
                                                                     .build();
+
+        passwordManager.bind( "test", config, PasswordType.KEY );
 
         client = null;
         try

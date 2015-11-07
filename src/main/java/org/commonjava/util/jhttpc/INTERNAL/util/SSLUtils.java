@@ -15,25 +15,42 @@
  */
 package org.commonjava.util.jhttpc.INTERNAL.util;
 
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.x500.AttributeTypeAndValue;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
+import org.bouncycastle.operator.InputDecryptorProvider;
+import org.bouncycastle.pkcs.PKCS12PfxPdu;
+import org.bouncycastle.pkcs.PKCS8EncryptedPrivateKeyInfo;
+import org.bouncycastle.pkcs.PKCSException;
+import org.bouncycastle.pkcs.jcajce.JcePKCSPBEInputDecryptorProviderBuilder;
+import org.bouncycastle.util.io.pem.PemObject;
+import org.bouncycastle.util.io.pem.PemObjectParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.KeyManagerFactory;
 import javax.security.auth.x500.X500Principal;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.security.KeyFactory;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.Security;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -44,6 +61,7 @@ import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -63,10 +81,16 @@ public final class SSLUtils
     }
 
     public static KeyStore readKeyAndCert( final String pemContent, final String keyPass )
-        throws CertificateException, IOException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException
+            throws PKCSException, IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException,
+                   InvalidKeySpecException
     {
         final KeyStore ks = KeyStore.getInstance( KeyStore.getDefaultType() );
         ks.load( null );
+
+//        final KeyManagerFactory kmfactory = KeyManagerFactory.getInstance(
+//                KeyManagerFactory.getDefaultAlgorithm());
+//
+//        kmfactory.init(ks, keyPass.toCharArray());
 
         final CertificateFactory certFactory = CertificateFactory.getInstance( "X.509" );
         final KeyFactory keyFactory = KeyFactory.getInstance( "RSA" );
@@ -75,52 +99,69 @@ public final class SSLUtils
 
         String currentHeader = null;
         final StringBuilder current = new StringBuilder();
-        final Map<String, String> entries = new LinkedHashMap<String, String>();
-        for ( final String line : lines )
-        {
-            if ( line == null )
-            {
-                continue;
-            }
 
-            if ( line.startsWith( "-----BEGIN" ) )
-            {
-                currentHeader = line.trim();
-                current.setLength( 0 );
-            }
-            else if ( line.startsWith( "-----END" ) )
-            {
-                entries.put( currentHeader, current.toString() );
-            }
-            else
-            {
-                current.append( line.trim() );
-            }
-        }
+        int certIdx = 0;
+        Logger logger = LoggerFactory.getLogger( SSLUtils.class );
+
+        BouncyCastleProvider bcProvider = new BouncyCastleProvider();
+        InputDecryptorProvider provider = new JcePKCSPBEInputDecryptorProviderBuilder().setProvider( bcProvider )
+                                                                                       .build( keyPass.toCharArray() );
 
         final List<Certificate> certs = new ArrayList<Certificate>();
-        for ( int pass = 0; pass < 2; pass++ )
+        PrivateKey key = null;
+
+        PEMParser pemParser = new PEMParser(new StringReader( pemContent ) );
+        Object pemObj = null;
+        while ( ( pemObj = pemParser.readObject() ) != null )
         {
-            for ( final Map.Entry<String, String> entry : entries.entrySet() )
+            if ( pemObj instanceof X509CertificateHolder )
             {
-                final String header = entry.getKey();
-                final byte[] data = decodeBase64( entry.getValue() );
+                X509CertificateHolder holder = (X509CertificateHolder) pemObj;
+                X509Certificate certificate =
+                        new JcaX509CertificateConverter().setProvider( bcProvider ).getCertificate( holder );
 
-                if ( pass > 0 && header.contains( "BEGIN PRIVATE KEY" ) )
-                {
-                    final KeySpec spec = new PKCS8EncodedKeySpec( data );
-                    final PrivateKey key = keyFactory.generatePrivate( spec );
-                    ks.setKeyEntry( "key", key, keyPass.toCharArray(), certs.toArray( new Certificate[certs.size()] ) );
-                }
-                else if ( pass < 1 && header.contains( "BEGIN CERTIFICATE" ) )
-                {
-                    final Certificate c = certFactory.generateCertificate( new ByteArrayInputStream( data ) );
+                certs.add( certificate );
 
-                    ks.setCertificateEntry( "certificate", c );
-                    certs.add( c );
+                Set<String> aliases = new HashSet<String>();
+                aliases.add( "certificate" + certIdx);
+
+                extractAliases( certificate, aliases );
+
+                KeyStore.TrustedCertificateEntry ksEntry = new KeyStore.TrustedCertificateEntry( certificate );
+                for ( String alias : aliases )
+                {
+                    ks.setEntry( alias, ksEntry, null );
+                    logger.info( "Storing trusted cert under alias: {}\n  with DN: {}", alias, certificate.getSubjectDN().getName() );
                 }
+
+                certIdx++;
+            }
+            else if ( pemObj instanceof PKCS8EncryptedPrivateKeyInfo)
+            {
+                PKCS8EncryptedPrivateKeyInfo keyInfo = (PKCS8EncryptedPrivateKeyInfo) pemObj;
+                PrivateKeyInfo privateKeyInfo = keyInfo.decryptPrivateKeyInfo( provider );
+                key = new JcaPEMKeyConverter().getPrivateKey( privateKeyInfo );
             }
         }
+
+        if ( key != null && !certs.isEmpty() )
+        {
+            logger.debug( "Setting key entry: {}", key );
+            ks.setKeyEntry( "key", key, keyPass.toCharArray(), certs.toArray( new Certificate[certs.size()] ) );
+        }
+        else
+        {
+            logger.debug( "No private key found in PEM!" );
+        }
+
+        Enumeration<String> aliases = ks.aliases();
+        while ( aliases.hasMoreElements() )
+        {
+            String alias = aliases.nextElement();
+            logger.debug( "Got alias: {}. Is Cert? {} Is Private key? {}", alias, ks.isCertificateEntry( alias ),
+                          ks.isKeyEntry( alias ) );
+        }
+
 
         return ks;
     }

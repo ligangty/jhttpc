@@ -19,13 +19,21 @@ import org.commonjava.util.jhttpc.it.AbstractIT;
 import org.commonjava.util.jhttpc.model.SiteConfig;
 import org.commonjava.util.jhttpc.model.SiteConfigBuilder;
 import org.commonjava.util.jhttpc.model.SiteTrustType;
+import org.junit.Ignore;
 
 /**
  * Created by jdcasey on 10/30/15.
  */
-public abstract class AbstractSelfSignedIT
+public class SelfSignedIT
         extends AbstractIT
 {
+    @Override
+    @Ignore( "Not supported in self-signed scenarios")
+    public void clientSSLGet()
+            throws Exception
+    {
+    }
+
     @Override
     protected String getContainerId()
     {

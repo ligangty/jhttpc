@@ -15,18 +15,25 @@
  */
 package org.commonjava.util.jhttpc.it.root;
 
-import org.junit.Test;
+import org.commonjava.util.jhttpc.it.AbstractIT;
 
 /**
- * Created by jdcasey on 11/2/15.
+ * Created by jdcasey on 10/30/15.
  */
-public class ClientSSLGet_Root_IT
-        extends AbstractRootSignedIT
+public class RootSignedIT
+        extends AbstractIT
 {
-    @Test
-    public void run()
-            throws Exception
+    @Override
+    protected String getContainerId()
     {
-        super.clientSSLGet();
+        return "rootsigned";
     }
+
+    @Override
+    protected String[] getCertificatePaths()
+    {
+        return new String[]{SITE_CERT_PATH};
+//        return new String[]{SSL_CONFIG_BASE + "/root.crt", SITE_CERT_PATH};
+    }
+
 }

@@ -13,21 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.commonjava.util.jhttpc.it.self;
+package org.commonjava.util.jhttpc.it.inter;
 
-import org.commonjava.util.jhttpc.it.root.AbstractRootSignedIT;
-import org.junit.Test;
+import org.commonjava.util.jhttpc.it.AbstractIT;
 
 /**
- * Created by jdcasey on 11/2/15.
+ * Created by jdcasey on 10/30/15.
  */
-public class SimpleSSLGet_Self_IT
-        extends AbstractSelfSignedIT
+public class IntermediateSignedIT
+        extends AbstractIT
 {
-    @Test
-    public void run()
-            throws Exception
+    @Override
+    protected String getContainerId()
     {
-        super.simpleSSLGet();
+        return "intersigned";
     }
+
+    @Override
+    protected String[] getCertificatePaths()
+    {
+        return new String[]{SITE_CERT_PATH};
+//        return new String[]{SSL_CONFIG_BASE + "/root.crt", SSL_CONFIG_BASE + "/web.crt", SITE_CERT_PATH};
+    }
+
 }

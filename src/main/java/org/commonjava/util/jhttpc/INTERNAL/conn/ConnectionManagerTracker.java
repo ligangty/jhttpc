@@ -16,6 +16,8 @@
 package org.commonjava.util.jhttpc.INTERNAL.conn;
 
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by jdcasey on 11/3/15.
@@ -50,8 +52,15 @@ public class ConnectionManagerTracker
     public synchronized void release()
     {
         users--;
+        tryShutdown();
+    }
+
+    private void tryShutdown()
+    {
         if ( detached && users < 1 )
         {
+            Logger logger = LoggerFactory.getLogger( getClass() );
+            logger.info( "Shutdown connection manager: {}", this );
             manager.reallyShutdown();
         }
     }
@@ -70,6 +79,7 @@ public class ConnectionManagerTracker
     public void detach()
     {
         this.detached = true;
+        tryShutdown();
     }
 
     @Override

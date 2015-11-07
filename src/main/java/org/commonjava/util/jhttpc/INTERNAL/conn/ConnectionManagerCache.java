@@ -21,8 +21,15 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import org.commonjava.util.jhttpc.JHttpCException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -32,92 +39,65 @@ import java.util.concurrent.TimeUnit;
  */
 public class ConnectionManagerCache
 {
-    private final Cache<SiteConnectionConfig, ConnectionManagerTracker> cache;
+    private static final long EXPIRATION_SECONDS = 30;
+    private static final long EXPIRATION_MILLIS = TimeUnit.MILLISECONDS.convert( EXPIRATION_SECONDS, TimeUnit.SECONDS );
 
-    private final CacheLoader<SiteConnectionConfig, ConnectionManagerTracker> loader;
+    private final Map<SiteConnectionConfig, ConnectionManagerTracker> cache = new HashMap<SiteConnectionConfig, ConnectionManagerTracker>();
+
+    private final Timer timer = new Timer("jhttpc-connection-manager-cache", true);
 
     public ConnectionManagerCache()
     {
-        this.loader = new ConnectionManagerLoader();
-        this.cache = CacheBuilder.newBuilder()
-                                 .expireAfterAccess( 30, TimeUnit.SECONDS )
-                                 .removalListener( new ClosingRemovalListener() )
-                                 .build( loader );
+        timer.scheduleAtFixedRate( new ExpirationSweeper(this), EXPIRATION_MILLIS, EXPIRATION_MILLIS );
     }
 
-    public void expireTrackersOlderThan( long duration, TimeUnit unit )
+    public synchronized void expireTrackersOlderThan( long duration, TimeUnit unit )
     {
         long expiration = System.currentTimeMillis() - TimeUnit.MILLISECONDS.convert( duration, unit );
 
-        Iterator<ConnectionManagerTracker> iter = cache.asMap().values().iterator();
-        while( iter.hasNext() )
+        for( SiteConnectionConfig config: new HashSet<SiteConnectionConfig>(cache.keySet()) )
         {
-            ConnectionManagerTracker tracker = iter.next();
-            if ( tracker.getLastRetrieval() < expiration )
+            ConnectionManagerTracker tracker = cache.get( config );
+            if ( tracker != null && tracker.getLastRetrieval() < expiration )
             {
-                iter.remove();
+                Logger logger = LoggerFactory.getLogger( getClass() );
+                logger.info( "Detaching connection tracker from cache: {}", tracker );
+                cache.remove( config );
+                tracker.detach();
             }
         }
     }
 
-    public ConnectionManagerTracker getTrackerFor( SiteConnectionConfig config )
+    public synchronized ConnectionManagerTracker getTrackerFor( SiteConnectionConfig config )
             throws JHttpCException
     {
-        try
+        ConnectionManagerTracker tracker = cache.get( config );
+        if ( tracker == null )
         {
-            ConnectionManagerTracker tracker = cache.get( config, newCallable( config ) );
-            return tracker.retrieved();
+            tracker = new ConnectionManagerTracker( config );
+            cache.put( config, tracker );
         }
-        catch ( ExecutionException e )
-        {
-            throw new JHttpCException( "Failed to retrieve connection manager for: %s. Reason: %s", e, config,
-                                       e.getMessage() );
-        }
+
+        return tracker.retrieved();
     }
 
-    private Callable<ConnectionManagerTracker> newCallable( SiteConnectionConfig config )
+    static final class ExpirationSweeper
+            extends TimerTask
     {
-        return new LoaderCall( config, loader );
-    }
 
-    static final class LoaderCall
-            implements Callable<ConnectionManagerTracker>
-    {
-        private final SiteConnectionConfig config;
+        private ConnectionManagerCache cache;
 
-        private final CacheLoader<SiteConnectionConfig, ConnectionManagerTracker> loader;
-
-        LoaderCall( SiteConnectionConfig config, CacheLoader<SiteConnectionConfig, ConnectionManagerTracker> loader )
+        public ExpirationSweeper( ConnectionManagerCache cache )
         {
-            this.config = config;
-            this.loader = loader;
+            this.cache = cache;
         }
 
-        public ConnectionManagerTracker call()
-                throws Exception
-        {
-            return loader.load( config );
-        }
-    }
-
-    static final class ClosingRemovalListener
-            implements RemovalListener<SiteConnectionConfig, ConnectionManagerTracker>
-    {
         @Override
-        public void onRemoval( RemovalNotification<SiteConnectionConfig, ConnectionManagerTracker> notification )
+        public void run()
         {
-            notification.getValue().detach();
-        }
-    }
-
-    static final class ConnectionManagerLoader
-            extends CacheLoader<SiteConnectionConfig, ConnectionManagerTracker>
-    {
-        @Override
-        public ConnectionManagerTracker load( SiteConnectionConfig key )
-                throws Exception
-        {
-            return new ConnectionManagerTracker(key);
+            Logger logger = LoggerFactory.getLogger( getClass() );
+            logger.info( "Sweeping for old connection trackers." );
+            cache.expireTrackersOlderThan( EXPIRATION_SECONDS, TimeUnit.SECONDS );
         }
     }
 }
