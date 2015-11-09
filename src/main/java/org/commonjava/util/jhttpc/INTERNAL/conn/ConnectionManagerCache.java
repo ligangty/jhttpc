@@ -15,23 +15,15 @@
  */
 package org.commonjava.util.jhttpc.INTERNAL.conn;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.RemovalListener;
-import com.google.common.cache.RemovalNotification;
 import org.commonjava.util.jhttpc.JHttpCException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,22 +32,24 @@ import java.util.concurrent.TimeUnit;
 public class ConnectionManagerCache
 {
     private static final long EXPIRATION_SECONDS = 30;
+
     private static final long EXPIRATION_MILLIS = TimeUnit.MILLISECONDS.convert( EXPIRATION_SECONDS, TimeUnit.SECONDS );
 
-    private final Map<SiteConnectionConfig, ConnectionManagerTracker> cache = new HashMap<SiteConnectionConfig, ConnectionManagerTracker>();
+    private final Map<SiteConnectionConfig, ConnectionManagerTracker> cache =
+            new HashMap<SiteConnectionConfig, ConnectionManagerTracker>();
 
-    private final Timer timer = new Timer("jhttpc-connection-manager-cache", true);
+    private final Timer timer = new Timer( "jhttpc-connection-manager-cache", true );
 
     public ConnectionManagerCache()
     {
-        timer.scheduleAtFixedRate( new ExpirationSweeper(this), EXPIRATION_MILLIS, EXPIRATION_MILLIS );
+        timer.scheduleAtFixedRate( new ExpirationSweeper( this ), EXPIRATION_MILLIS, EXPIRATION_MILLIS );
     }
 
     public synchronized void expireTrackersOlderThan( long duration, TimeUnit unit )
     {
         long expiration = System.currentTimeMillis() - TimeUnit.MILLISECONDS.convert( duration, unit );
 
-        for( SiteConnectionConfig config: new HashSet<SiteConnectionConfig>(cache.keySet()) )
+        for ( SiteConnectionConfig config : new HashSet<SiteConnectionConfig>( cache.keySet() ) )
         {
             ConnectionManagerTracker tracker = cache.get( config );
             if ( tracker != null && tracker.getLastRetrieval() < expiration )
