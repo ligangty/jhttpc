@@ -160,7 +160,7 @@
                 <containers>
                   <container>
                     <id>selfsigned</id>
-                    <image>docker.io/buildchimp/ssl-dojo:dev</image>
+                    <image>docker.io/commonjava/ssl-dojo:1.0</image>
                     <env>
                       <CA_TYPE>self</CA_TYPE>
                       <CA_HOST>test.myco.com</CA_HOST>
@@ -170,7 +170,7 @@
                   </container>
                   <container>
                     <id>rootsigned</id>
-                    <image>docker.io/buildchimp/ssl-dojo:dev</image>
+                    <image>docker.io/commonjava/ssl-dojo:1.0</image>
                     <env>
                       <CA_TYPE>single</CA_TYPE>
                       <CA_HOST>test.myco.com</CA_HOST>
@@ -180,7 +180,7 @@
                   </container>
                   <container>
                     <id>intersigned</id>
-                    <image>docker.io/buildchimp/ssl-dojo:dev</image>
+                    <image>docker.io/commonjava/ssl-dojo:1.0</image>
                     <env>
                       <CA_TYPE>multi</CA_TYPE>
                       <CA_HOST>test.myco.com</CA_HOST>
