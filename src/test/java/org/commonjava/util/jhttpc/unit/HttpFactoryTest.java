@@ -99,12 +99,13 @@ public class HttpFactoryTest
     }
 
     @Test
+    @Ignore( "This is a diagnostic test for the environment, mainly for use with the docker-driven test below")
     public void checkKeyStrength()
             throws NoSuchAlgorithmException
     {
         int allowedKeyLength = 0;
 
-        assertThat( Cipher.getMaxAllowedKeyLength( "AES" ) > 128, equalTo( true ) );
+        assertThat( "The allowed key length for AES is: " + allowedKeyLength + ", should be > 128!", Cipher.getMaxAllowedKeyLength( "AES" ) > 128, equalTo( true ) );
 
         System.out.println("The allowed key length for AES is: " + allowedKeyLength);    }
 

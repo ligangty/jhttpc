@@ -21,7 +21,7 @@
   <parent>
     <groupId>org.commonjava</groupId>
     <artifactId>commonjava</artifactId>
-    <version>10</version>
+    <version>11-SNAPSHOT</version>
   </parent>
   
   <groupId>org.commonjava.util</groupId>
@@ -32,7 +32,7 @@
   <inceptionYear>2015</inceptionYear>
 
   <scm>
-    <connection>scm:git:http://jdcasey@github.com/commonjava/jhttpc.git</connection>
+    <connection>scm:git:http://github.com/commonjava/jhttpc.git</connection>
     <developerConnection>scm:git:git@github.com:commonjava/jhttpc.git</developerConnection>
     <url>http://github.com/commonjava/jhttpc</url>
     <tag>HEAD</tag>
@@ -41,6 +41,7 @@
   <properties>
     <projectOwner>Red Hat, Inc.</projectOwner>
     <javaVersion>1.7</javaVersion>
+    <httpcVersion>4.4</httpcVersion>
   </properties>
 
   <dependencyManagement>
@@ -54,9 +55,14 @@
       </dependency>
 
       <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
-        <version>18.0</version>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>${httpcVersion}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpcore</artifactId>
+        <version>${httpcVersion}</version>
       </dependency>
       <dependency>
         <groupId>org.bouncycastle</groupId>
@@ -67,11 +73,6 @@
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcpkix-jdk15on</artifactId>
         <version>1.53</version>
-      </dependency>
-      <dependency>
-        <groupId>commons-lang</groupId>
-        <artifactId>commons-lang</artifactId>
-        <version>2.6</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
@@ -88,22 +89,13 @@
   </dependencyManagement>
   
   <dependencies>
-
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-    </dependency>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.commonjava.util</groupId>
-      <artifactId>http-testserver</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>log4j-over-slf4j</artifactId>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpcore</artifactId>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
@@ -118,34 +110,64 @@
       <artifactId>commons-io</artifactId>
     </dependency>
     <dependency>
-      <groupId>commons-lang</groupId>
-      <artifactId>commons-lang</artifactId>
-    </dependency>
-    <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
     </dependency>
     <dependency>
-      <groupId>javax.inject</groupId>
-      <artifactId>javax.inject</artifactId>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>javax.enterprise</groupId>
-      <artifactId>cdi-api</artifactId>
+      <groupId>org.slf4j</groupId>
+      <artifactId>log4j-over-slf4j</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- Test deps -->
+    <dependency>
+      <groupId>org.commonjava.util</groupId>
+      <artifactId>http-testserver</artifactId>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-core</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
   <build>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>2.8</version>
+          <executions>
+            <execution>
+              <id>default-cli</id>
+              <configuration>
+                <ignoreNonCompile>true</ignoreNonCompile>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
           <configuration>
@@ -170,7 +192,7 @@
                 <containers>
                   <container>
                     <id>selfsigned</id>
-                    <image>docker.io/buildchimp/ssl-dojo:dev</image>
+                    <image>docker.io/commonjava/ssl-dojo:1.0</image>
                     <env>
                       <CA_TYPE>self</CA_TYPE>
                       <CA_HOST>test.myco.com</CA_HOST>
@@ -180,7 +202,7 @@
                   </container>
                   <container>
                     <id>rootsigned</id>
-                    <image>docker.io/buildchimp/ssl-dojo:dev</image>
+                    <image>docker.io/commonjava/ssl-dojo:1.0</image>
                     <env>
                       <CA_TYPE>single</CA_TYPE>
                       <CA_HOST>test.myco.com</CA_HOST>
@@ -190,7 +212,7 @@
                   </container>
                   <container>
                     <id>intersigned</id>
-                    <image>docker.io/buildchimp/ssl-dojo:dev</image>
+                    <image>docker.io/commonjava/ssl-dojo:1.0</image>
                     <env>
                       <CA_TYPE>multi</CA_TYPE>
                       <CA_HOST>test.myco.com</CA_HOST>

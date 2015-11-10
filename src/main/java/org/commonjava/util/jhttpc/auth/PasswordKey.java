@@ -15,7 +15,6 @@
  */
 package org.commonjava.util.jhttpc.auth;
 
-import org.apache.commons.lang.StringUtils;
 import org.commonjava.util.jhttpc.model.SiteConfig;
 
 public class PasswordKey
@@ -32,7 +31,7 @@ public class PasswordKey
 
     public PasswordKey( final String siteId, final PasswordType passwordType )
     {
-        if ( siteId == null || StringUtils.isEmpty( siteId ) )
+        if ( siteId == null || siteId.trim().length() < 1 )
         {
             throw new IllegalArgumentException( "Empty/missing siteId!" );
         }
