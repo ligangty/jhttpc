@@ -146,20 +146,29 @@ public class HttpFactory
     }
 
     public HttpClientContext createContext()
-            throws MalformedURLException
+            throws JHttpCException
     {
         return createContext( null );
     }
 
     public HttpClientContext createContext( final SiteConfig location )
-            throws MalformedURLException
+            throws JHttpCException
     {
         final HttpClientContext ctx = HttpClientContext.create();
 
         if ( location != null )
         {
             final CredentialsProvider creds = new BasicCredentialsProvider();
-            final AuthScope as = new AuthScope( location.getHost(), location.getPort() );
+            final AuthScope as;
+            try
+            {
+                as = new AuthScope( location.getHost(), location.getPort() );
+            }
+            catch ( MalformedURLException e )
+            {
+                throw new JHttpCException( "Failed to parse site URL for host and port: %s (site id: %s). Reason: %s",
+                                           e, location.getUri(), location.getId(), e.getMessage() );
+            }
 
             if ( location.getUser() != null )
             {

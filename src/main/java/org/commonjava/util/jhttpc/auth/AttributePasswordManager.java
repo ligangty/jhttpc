@@ -23,7 +23,7 @@ public class AttributePasswordManager
         implements PasswordManager
 {
 
-    private static final String PASSWORD_PREFIX = "password_";
+    public static final String PASSWORD_PREFIX = "password_";
 
     private SiteConfigLookup lookupManager;
 
