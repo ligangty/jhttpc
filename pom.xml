@@ -42,6 +42,11 @@
     <projectOwner>Red Hat, Inc.</projectOwner>
     <javaVersion>1.7</javaVersion>
     <httpcVersion>4.4</httpcVersion>
+    <dockerWaitFor>Setting LogLevel for all modules to trace6</dockerWaitFor>
+    <!-- <dockerImage>docker.io/buildchimp/ssl-dojo:dev</dockerImage> -->
+    <dockerImage>docker.io/commonjava/ssl-dojo:1.1</dockerImage>
+
+    <enforceBestPractices>false</enforceBestPractices>
   </properties>
 
   <dependencyManagement>
@@ -157,6 +162,27 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>animal-sniffer-maven-plugin</artifactId>
+          <version>1.14</version>
+          <executions>
+            <execution>
+              <id>check-jdk16-compat</id>
+              <goals>
+                <goal>check</goal>
+              </goals>
+              <phase>test</phase>
+              <configuration>
+                <signature>
+                  <groupId>org.codehaus.mojo.signature</groupId>
+                  <artifactId>java16</artifactId>
+                  <version>1.1</version>
+                </signature>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
           <artifactId>maven-dependency-plugin</artifactId>
           <version>2.8</version>
           <executions>
@@ -179,7 +205,7 @@
           <!-- See: https://github.com/wouterd/docker-maven-plugin -->
           <groupId>net.wouterdanes.docker</groupId>
           <artifactId>docker-maven-plugin</artifactId>
-          <version>3.1.0</version>
+          <version>4.0.2-SNAPSHOT</version>
           <executions>
             <execution>
               <id>start-IT-containers</id>
@@ -188,37 +214,38 @@
               </goals>
               <phase>pre-integration-test</phase>
               <configuration>
+                <!-- <forceCleanup>false</forceCleanup> -->
                 <providerName>${dockerProvider}</providerName>
                 <containers>
                   <container>
                     <id>selfsigned</id>
-                    <image>docker.io/commonjava/ssl-dojo:1.0</image>
+                    <image>${dockerImage}</image>
                     <env>
                       <CA_TYPE>self</CA_TYPE>
                       <CA_HOST>test.myco.com</CA_HOST>
                     </env>
                     <hostname>test.myco.com</hostname>
-                    <waitForStartup>Setting LogLevel for all modules to trace6</waitForStartup>
+                    <waitForStartup>${dockerWaitFor}</waitForStartup>
                   </container>
                   <container>
                     <id>rootsigned</id>
-                    <image>docker.io/commonjava/ssl-dojo:1.0</image>
+                    <image>${dockerImage}</image>
                     <env>
                       <CA_TYPE>single</CA_TYPE>
                       <CA_HOST>test.myco.com</CA_HOST>
                     </env>
                     <hostname>test.myco.com</hostname>
-                    <waitForStartup>Setting LogLevel for all modules to trace6</waitForStartup>
+                    <waitForStartup>${dockerWaitFor}</waitForStartup>
                   </container>
                   <container>
                     <id>intersigned</id>
-                    <image>docker.io/commonjava/ssl-dojo:1.0</image>
+                    <image>${dockerImage}</image>
                     <env>
                       <CA_TYPE>multi</CA_TYPE>
                       <CA_HOST>test.myco.com</CA_HOST>
                     </env>
                     <hostname>test.myco.com</hostname>
-                    <waitForStartup>Setting LogLevel for all modules to trace6</waitForStartup>
+                    <waitForStartup>${dockerWaitFor}</waitForStartup>
                   </container>
                 </containers>
               </configuration>
@@ -229,6 +256,9 @@
                 <goal>stop-containers</goal>
               </goals>
               <phase>post-integration-test</phase>
+              <configuration>
+                <logs>${project.build.directory}/docker-logs</logs>
+              </configuration>
             </execution>
           </executions>
         </plugin>
@@ -292,6 +322,12 @@ javax.net.debug=ssl:handshake:verbose
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>animal-sniffer-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
   </build>
 
   <profiles>

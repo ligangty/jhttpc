@@ -15,8 +15,11 @@
  */
 package org.commonjava.util.jhttpc.INTERNAL.util;
 
+import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
 
@@ -27,9 +30,12 @@ public final class CertEnumerator
 {
     private final KeyStore ks;
 
-    public CertEnumerator( final KeyStore ks )
+    private String kcPass;
+
+    public CertEnumerator( final KeyStore ks, String kcPass )
     {
         this.ks = ks;
+        this.kcPass = kcPass;
     }
 
     @Override
@@ -44,15 +50,30 @@ public final class CertEnumerator
                 final String alias = aliases.nextElement();
                 final X509Certificate cert = (X509Certificate) ks.getCertificate( alias );
 
+                sb.append( "\nAlias: " ).append( alias );
                 if ( cert != null )
                 {
-                    sb.append( "\n" ).append( cert.getSubjectDN() );
+                    sb.append( "\n\t" ).append( cert.getSubjectDN() );
+                }
+
+                Key key = ks.getKey( alias, kcPass.toCharArray() );
+                if ( key != null )
+                {
+                    sb.append("\n\t").append( key.getAlgorithm() ).append( " private key." );
                 }
             }
         }
         catch ( final KeyStoreException e )
         {
             sb.append( "ERROR READING KEYSTORE" );
+        }
+        catch ( UnrecoverableKeyException e )
+        {
+            sb.append( "ERROR READING KEY" );
+        }
+        catch ( NoSuchAlgorithmException e )
+        {
+            sb.append( "ERROR READING KEY" );
         }
 
         return sb.toString();

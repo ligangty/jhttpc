@@ -24,7 +24,11 @@ import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMDecryptorProvider;
+import org.bouncycastle.openssl.PEMEncryptedKeyPair;
+import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.bc.BcPEMDecryptorProvider;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.operator.InputDecryptorProvider;
 import org.bouncycastle.pkcs.PKCS12PfxPdu;
@@ -87,10 +91,10 @@ public final class SSLUtils
         final KeyStore ks = KeyStore.getInstance( KeyStore.getDefaultType() );
         ks.load( null );
 
-//        final KeyManagerFactory kmfactory = KeyManagerFactory.getInstance(
-//                KeyManagerFactory.getDefaultAlgorithm());
-//
-//        kmfactory.init(ks, keyPass.toCharArray());
+        //        final KeyManagerFactory kmfactory = KeyManagerFactory.getInstance(
+        //                KeyManagerFactory.getDefaultAlgorithm());
+        //
+        //        kmfactory.init(ks, keyPass.toCharArray());
 
         final CertificateFactory certFactory = CertificateFactory.getInstance( "X.509" );
         final KeyFactory keyFactory = KeyFactory.getInstance( "RSA" );
@@ -104,16 +108,17 @@ public final class SSLUtils
         Logger logger = LoggerFactory.getLogger( SSLUtils.class );
 
         BouncyCastleProvider bcProvider = new BouncyCastleProvider();
-        InputDecryptorProvider provider = new JcePKCSPBEInputDecryptorProviderBuilder().setProvider( bcProvider )
-                                                                                       .build( keyPass.toCharArray() );
+        InputDecryptorProvider provider =
+                new JcePKCSPBEInputDecryptorProviderBuilder().setProvider( bcProvider ).build( keyPass.toCharArray() );
 
         final List<Certificate> certs = new ArrayList<Certificate>();
         PrivateKey key = null;
 
-        PEMParser pemParser = new PEMParser(new StringReader( pemContent ) );
+        PEMParser pemParser = new PEMParser( new StringReader( pemContent ) );
         Object pemObj = null;
         while ( ( pemObj = pemParser.readObject() ) != null )
         {
+            logger.debug( "Got PEM object: {}", pemObj );
             if ( pemObj instanceof X509CertificateHolder )
             {
                 X509CertificateHolder holder = (X509CertificateHolder) pemObj;
@@ -123,7 +128,7 @@ public final class SSLUtils
                 certs.add( certificate );
 
                 Set<String> aliases = new HashSet<String>();
-                aliases.add( "certificate" + certIdx);
+                aliases.add( "certificate" + certIdx );
 
                 extractAliases( certificate, aliases );
 
@@ -131,15 +136,23 @@ public final class SSLUtils
                 for ( String alias : aliases )
                 {
                     ks.setEntry( alias, ksEntry, null );
-                    logger.info( "Storing trusted cert under alias: {}\n  with DN: {}", alias, certificate.getSubjectDN().getName() );
+                    logger.info( "Storing trusted cert under alias: {}\n  with DN: {}", alias,
+                                 certificate.getSubjectDN().getName() );
                 }
 
                 certIdx++;
             }
-            else if ( pemObj instanceof PKCS8EncryptedPrivateKeyInfo)
+            else if ( pemObj instanceof PKCS8EncryptedPrivateKeyInfo )
             {
                 PKCS8EncryptedPrivateKeyInfo keyInfo = (PKCS8EncryptedPrivateKeyInfo) pemObj;
                 PrivateKeyInfo privateKeyInfo = keyInfo.decryptPrivateKeyInfo( provider );
+                key = new JcaPEMKeyConverter().getPrivateKey( privateKeyInfo );
+            }
+            else if ( pemObj instanceof PEMEncryptedKeyPair )
+            {
+                PEMEncryptedKeyPair keyPair = (PEMEncryptedKeyPair) pemObj;
+                PEMKeyPair decryptedKeyPair = keyPair.decryptKeyPair( new BcPEMDecryptorProvider( keyPass.toCharArray() ) );
+                PrivateKeyInfo privateKeyInfo = decryptedKeyPair.getPrivateKeyInfo();
                 key = new JcaPEMKeyConverter().getPrivateKey( privateKeyInfo );
             }
         }
@@ -147,7 +160,8 @@ public final class SSLUtils
         if ( key != null && !certs.isEmpty() )
         {
             logger.debug( "Setting key entry: {}", key );
-            ks.setKeyEntry( "key", key, keyPass.toCharArray(), certs.toArray( new Certificate[certs.size()] ) );
+            ks.setKeyEntry( MonolithicKeyStrategy.KEY, key, keyPass.toCharArray(),
+                            certs.toArray( new Certificate[certs.size()] ) );
         }
         else
         {
@@ -162,12 +176,11 @@ public final class SSLUtils
                           ks.isKeyEntry( alias ) );
         }
 
-
         return ks;
     }
 
     public static KeyStore readCerts( final String pemContent, final String aliasPrefix )
-        throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException
+            throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException
     {
         final KeyStore ks = KeyStore.getInstance( KeyStore.getDefaultType() );
         ks.load( null );
@@ -209,7 +222,14 @@ public final class SSLUtils
             X509Certificate cert = (X509Certificate) c;
 
             Set<String> aliases = new HashSet<String>();
-            aliases.add( aliasPrefix + i );
+            if ( i < 1 )
+            {
+                aliases.add( aliasPrefix );
+            }
+            else
+            {
+                aliases.add( aliasPrefix + i );
+            }
 
             extractAliases( cert, aliases );
 
@@ -217,7 +237,8 @@ public final class SSLUtils
             for ( String alias : aliases )
             {
                 ks.setEntry( alias, ksEntry, null );
-                logger.info( "Storing trusted cert under alias: {}\n  with DN: {}", alias, cert.getSubjectDN().getName() );
+                logger.info( "Storing trusted cert under alias: {}\n  with DN: {}", alias,
+                             cert.getSubjectDN().getName() );
             }
 
             i++;
@@ -266,13 +287,14 @@ public final class SSLUtils
     }
 
     private static List<String> readLines( final String content )
-        throws IOException
+            throws IOException
     {
         final List<String> lines = new ArrayList<String>();
         BufferedReader reader = null;
         try
         {
-            reader = new BufferedReader( new InputStreamReader( new ByteArrayInputStream( content.getBytes( Charset.forName( "UTF-8" ) ) ) ) );
+            reader = new BufferedReader( new InputStreamReader(
+                    new ByteArrayInputStream( content.getBytes( Charset.forName( "UTF-8" ) ) ) ) );
             String line = null;
             while ( ( line = reader.readLine() ) != null )
             {

@@ -38,6 +38,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -64,7 +66,7 @@ public abstract class AbstractIT
 
     private static final String CONTENT_MGMT_PATH = "/cgi-bin/content.py/";
 
-    protected static final String SSL_CONFIG_BASE ="/ssl-config";
+    protected static final String SSL_CONFIG_BASE = "/ssl-config";
 
     protected static final String SITE_CERT_PATH = SSL_CONFIG_BASE + "/site.crt";
 
@@ -77,7 +79,7 @@ public abstract class AbstractIT
 
         putContent( path, content );
 
-        SiteConfig config = getSiteConfigBuilder().withKeyCertPem(getClientKeyCertPem()).build();
+        SiteConfig config = getSiteConfigBuilder().withKeyCertPem( getClientKeyCertPem() ).build();
         passwordManager.bind( "test", config, PasswordType.KEY );
 
         CloseableHttpClient client = null;
@@ -89,10 +91,6 @@ public abstract class AbstractIT
             String result = IOUtils.toString( response.getEntity().getContent() );
 
             assertThat( result, equalTo( content ) );
-        }
-        catch ( Exception e )
-        {
-            processError( e );
         }
         finally
         {
@@ -120,10 +118,6 @@ public abstract class AbstractIT
 
             assertThat( result, equalTo( content ) );
         }
-        catch ( Exception e )
-        {
-            processError( e );
-        }
         finally
         {
             IOUtils.closeQuietly( client );
@@ -148,10 +142,6 @@ public abstract class AbstractIT
             String result = IOUtils.toString( response.getEntity().getContent() );
 
             assertThat( result, equalTo( content ) );
-        }
-        catch ( Exception e )
-        {
-            processError( e );
         }
         finally
         {
@@ -178,10 +168,6 @@ public abstract class AbstractIT
                 System.out.println( result );
                 assertThat( result, notNullValue() );
             }
-        }
-        catch ( Exception e )
-        {
-            processError( e );
         }
         finally
         {
@@ -223,18 +209,73 @@ public abstract class AbstractIT
     public void setup()
             throws Exception
     {
-        System.out.println("\n\n #### SETUP: " + name.getMethodName() + " #### \n\n");
+        System.out.println( "\n\n #### SETUP: " + name.getMethodName() + " #### \n\n" );
         passwordManager = new MemoryPasswordManager();
         factory = new HttpFactory( passwordManager );
-        System.out.println("\n\n #### START: " + name.getMethodName() + " #### \n\n");
+        System.out.println( "\n\n #### START: " + name.getMethodName() + " #### \n\n" );
     }
 
     @After
     public void teardown()
             throws Exception
     {
+        String buildDir = System.getProperty( "project.build.directory", "target" );
+
+        File dir = new File( buildDir, "httpd-logs" );
+        dir = new File( dir, getContainerId() );
+        dir = new File( dir, name.getMethodName() );
+        dir.mkdirs();
+
+        System.out.println( "Downloading httpd logs to: " + dir );
+
+        List<String> paths = Arrays.asList( "ssl-config/site.crt", "ssl-config/site.key", "ssl-config/ca-chain.crt",
+                                            "ssl-config/client.pem", "ssl-config/client.p12", "ssl-config/client.crt",
+                                            "ssl-config/client.key", "httpd/conf/httpd.conf", "httpd/conf.d/ssl.conf",
+                                            "ssl-config/openssl.cnf", "logs/error_log", "logs/ssl_error_log",
+                                            "logs/access_log", "logs/ssl_access_log", "logs/ssl_request_log" );
+
+        CloseableHttpClient client = null;
+        FileOutputStream stream = null;
+        try
+        {
+            client = factory.createClient();
+            for ( String path : paths )
+            {
+                File httpdFile = new File( dir, path );
+                httpdFile.getParentFile().mkdirs();
+
+                CloseableHttpResponse response = client.execute( new HttpGet( formatUrl( path ) ) );
+
+                if ( response.getStatusLine().getStatusCode() == 200 )
+                {
+                    try
+                    {
+                        stream = new FileOutputStream( httpdFile );
+                        IOUtils.copy( response.getEntity().getContent(), stream );
+                    }
+                    finally
+                    {
+                        IOUtils.closeQuietly( stream );
+                    }
+                }
+                else
+                {
+                    System.out.println( "Cannot retrieve: " + path + ". Status was: " + response.getStatusLine() );
+                }
+            }
+        }
+        catch ( Exception err )
+        {
+            System.out.println( "Failed to retrieve server logs after error. Reason: " + err.getMessage() );
+            err.printStackTrace();
+        }
+        finally
+        {
+            IOUtils.closeQuietly( client );
+        }
+
         factory.close();
-        System.out.println("\n\n #### END: " + name.getMethodName() + "#### \n\n");
+        System.out.println( "\n\n #### END: " + name.getMethodName() + "#### \n\n" );
     }
 
     protected String getServerCertsPem()
@@ -247,7 +288,7 @@ public abstract class AbstractIT
         try
         {
             client = factory.createClient();
-            System.out.println("\n\n ##### START: " + name.getMethodName() + " :: server.pem #####\n\n" );
+            System.out.println( "\n\n ##### START: " + name.getMethodName() + " :: server.pem #####\n\n" );
             for ( String path : paths )
             {
                 CloseableHttpResponse response = client.execute( new HttpGet( formatUrl( path ) ) );
@@ -258,11 +299,7 @@ public abstract class AbstractIT
                 assertThat( result, notNullValue() );
                 pem.append( result ).append( "\n" );
             }
-            System.out.println("\n\n ##### END: " + name.getMethodName() + " :: server.pem #####\n\n" );
-        }
-        catch ( Exception e )
-        {
-            processError( e );
+            System.out.println( "\n\n ##### END: " + name.getMethodName() + " :: server.pem #####\n\n" );
         }
         finally
         {
@@ -272,36 +309,6 @@ public abstract class AbstractIT
         return pem.toString();
     }
 
-    private void processError( Exception e )
-            throws Exception
-    {
-        List<String> paths = Arrays.asList("logs/error_log", "logs/ssl_error_log");
-
-        CloseableHttpClient client = null;
-        try
-        {
-            client = factory.createClient();
-            for ( String path : paths )
-            {
-                CloseableHttpResponse response = client.execute( new HttpGet( formatUrl( path ) ) );
-
-                String result = IOUtils.toString( response.getEntity().getContent() );
-                System.out.println( result );
-            }
-        }
-        catch ( Exception err )
-        {
-            System.out.println("Failed to retrieve server logs after error. Reason: " + err.getMessage());
-            err.printStackTrace();
-        }
-        finally
-        {
-            IOUtils.closeQuietly( client );
-        }
-
-        throw e;
-    }
-
     protected String getClientKeyCertPem()
             throws Exception
     {
@@ -309,15 +316,16 @@ public abstract class AbstractIT
         try
         {
             client = factory.createClient();
-            System.out.println("\n\n ##### START: " + name.getMethodName() + " :: client.pem #####\n\n" );
-            CloseableHttpResponse response = client.execute( new HttpGet( formatUrl( SSL_CONFIG_BASE, "client.pem" ) ) );
+            System.out.println( "\n\n ##### START: " + name.getMethodName() + " :: client.pem #####\n\n" );
+            CloseableHttpResponse response =
+                    client.execute( new HttpGet( formatUrl( SSL_CONFIG_BASE, "client.pem" ) ) );
             assertThat( response.getStatusLine().getStatusCode(), equalTo( 200 ) );
             String result = IOUtils.toString( response.getEntity().getContent() );
 
             System.out.println( result );
             assertThat( result, notNullValue() );
 
-            System.out.println("\n\n ##### END: " + name.getMethodName() + " :: client.pem #####\n\n" );
+            System.out.println( "\n\n ##### END: " + name.getMethodName() + " :: client.pem #####\n\n" );
             return result;
         }
         finally
@@ -368,36 +376,36 @@ public abstract class AbstractIT
         return String.format( SSL_URL_FORMAT, host, port );
     }
 
-//    protected void deleteContent( String path )
-//            throws Exception
-//    {
-//        String url = formatUrl( CONTENT_MGMT_PATH, path );
-//        HttpDelete put = new HttpDelete( url );
-//
-//        CloseableHttpClient client = null;
-//        try
-//        {
-//            client = factory.createClient();
-//            CloseableHttpResponse response = client.execute( put );
-//            int code = response.getStatusLine().getStatusCode();
-//            if ( code != 404 && code != 204 )
-//            {
-//                String extra = "";
-//                if ( response.getEntity() != null )
-//                {
-//                    String body = IOUtils.toString( response.getEntity().getContent() );
-//                    extra = "\nBody:\n\n" + body;
-//                }
-//
-//                Assert.fail( "Failed to delete content from: " + path + ".\nURL: " + url + "\nStatus: "
-//                                     + response.getStatusLine() + extra );
-//            }
-//        }
-//        finally
-//        {
-//            IOUtils.closeQuietly( client );
-//        }
-//    }
+    //    protected void deleteContent( String path )
+    //            throws Exception
+    //    {
+    //        String url = formatUrl( CONTENT_MGMT_PATH, path );
+    //        HttpDelete put = new HttpDelete( url );
+    //
+    //        CloseableHttpClient client = null;
+    //        try
+    //        {
+    //            client = factory.createClient();
+    //            CloseableHttpResponse response = client.execute( put );
+    //            int code = response.getStatusLine().getStatusCode();
+    //            if ( code != 404 && code != 204 )
+    //            {
+    //                String extra = "";
+    //                if ( response.getEntity() != null )
+    //                {
+    //                    String body = IOUtils.toString( response.getEntity().getContent() );
+    //                    extra = "\nBody:\n\n" + body;
+    //                }
+    //
+    //                Assert.fail( "Failed to delete content from: " + path + ".\nURL: " + url + "\nStatus: "
+    //                                     + response.getStatusLine() + extra );
+    //            }
+    //        }
+    //        finally
+    //        {
+    //            IOUtils.closeQuietly( client );
+    //        }
+    //    }
 
     protected void putContent( String path, String content )
             throws Exception
@@ -425,10 +433,6 @@ public abstract class AbstractIT
                         "Failed to put content to: " + path + ".\nURL: " + url + "\nStatus: " + response.getStatusLine()
                                 + extra );
             }
-        }
-        catch ( Exception e )
-        {
-            processError( e );
         }
         finally
         {
