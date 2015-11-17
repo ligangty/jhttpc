@@ -213,7 +213,7 @@ public class HttpFactory
                 logger.debug( "Reading Client SSL key from:\n\n{}\n\n", kcPem );
                 ks = SSLUtils.readKeyAndCert( kcPem, kcPass );
 
-                logger.debug( "Keystore contains the following certificates: {}", new CertEnumerator( ks ) );
+                logger.debug( "Keystore contains the following certificates: {}", new CertEnumerator( ks, kcPass ) );
             }
             catch ( final CertificateException e )
             {

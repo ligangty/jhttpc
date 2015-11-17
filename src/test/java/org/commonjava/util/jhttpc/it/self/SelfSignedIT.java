@@ -27,12 +27,12 @@ import org.junit.Ignore;
 public class SelfSignedIT
         extends AbstractIT
 {
-    @Override
-    @Ignore( "Not supported in self-signed scenarios")
-    public void clientSSLGet()
-            throws Exception
-    {
-    }
+//    @Override
+//    @Ignore( "Not supported in self-signed scenarios")
+//    public void clientSSLGet()
+//            throws Exception
+//    {
+//    }
 
     @Override
     protected String getContainerId()

@@ -29,6 +29,8 @@ import java.util.Map;
 public class MonolithicKeyStrategy
         implements PrivateKeyStrategy
 {
+    public static final String KEY = "key";
+
     @Override
     public String chooseAlias( Map<String, PrivateKeyDetails> aliases, Socket socket )
     {
@@ -36,6 +38,7 @@ public class MonolithicKeyStrategy
         logger.info(
                 "Returning hard-coded alias 'key' to coordinate with key/cert read from SiteConfig for socket: {}\n"
                         + "List of available aliases: {}", socket.getInetAddress(), aliases );
-        return "key";
+
+        return KEY;
     }
 }
