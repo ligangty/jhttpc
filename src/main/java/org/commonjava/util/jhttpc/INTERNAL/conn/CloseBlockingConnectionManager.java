@@ -93,7 +93,7 @@ public class CloseBlockingConnectionManager
     @Override
     public void shutdown()
     {
-        logger.info( "BLOCKED connection-manager shutdown" );
+        logger.debug( "BLOCKED connection-manager shutdown" );
     }
 
     public void reallyShutdown()

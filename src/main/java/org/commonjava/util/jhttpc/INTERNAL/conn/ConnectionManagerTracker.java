@@ -60,7 +60,7 @@ public class ConnectionManagerTracker
         if ( detached && users < 1 )
         {
             Logger logger = LoggerFactory.getLogger( getClass() );
-            logger.info( "Shutdown connection manager: {}", this );
+            logger.debug( "Shutdown connection manager: {}", this );
             manager.reallyShutdown();
         }
     }

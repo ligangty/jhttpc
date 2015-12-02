@@ -136,7 +136,7 @@ public final class SSLUtils
                 for ( String alias : aliases )
                 {
                     ks.setEntry( alias, ksEntry, null );
-                    logger.info( "Storing trusted cert under alias: {}\n  with DN: {}", alias,
+                    logger.debug( "Storing trusted cert under alias: {}\n  with DN: {}", alias,
                                  certificate.getSubjectDN().getName() );
                 }
 
@@ -237,7 +237,7 @@ public final class SSLUtils
             for ( String alias : aliases )
             {
                 ks.setEntry( alias, ksEntry, null );
-                logger.info( "Storing trusted cert under alias: {}\n  with DN: {}", alias,
+                logger.debug( "Storing trusted cert under alias: {}\n  with DN: {}", alias,
                              cert.getSubjectDN().getName() );
             }
 
