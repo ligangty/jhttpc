@@ -55,7 +55,7 @@ public class ConnectionManagerCache
             if ( tracker != null && tracker.getLastRetrieval() < expiration )
             {
                 Logger logger = LoggerFactory.getLogger( getClass() );
-                logger.info( "Detaching connection tracker from cache: {}", tracker );
+                logger.debug( "Detaching connection tracker from cache: {}", tracker );
                 cache.remove( config );
                 tracker.detach();
             }
@@ -90,7 +90,7 @@ public class ConnectionManagerCache
         public void run()
         {
             Logger logger = LoggerFactory.getLogger( getClass() );
-            logger.info( "Sweeping for old connection trackers." );
+            logger.debug( "Sweeping for old connection trackers." );
             cache.expireTrackersOlderThan( EXPIRATION_SECONDS, TimeUnit.SECONDS );
         }
     }

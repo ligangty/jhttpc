@@ -35,7 +35,7 @@ public class MonolithicKeyStrategy
     public String chooseAlias( Map<String, PrivateKeyDetails> aliases, Socket socket )
     {
         Logger logger = LoggerFactory.getLogger( getClass() );
-        logger.info(
+        logger.trace(
                 "Returning hard-coded alias 'key' to coordinate with key/cert read from SiteConfig for socket: {}\n"
                         + "List of available aliases: {}", socket.getInetAddress(), aliases );
 
