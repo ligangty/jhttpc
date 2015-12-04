@@ -41,14 +41,14 @@ public final class UrlUtils
     public static String buildUrl( final String baseUrl, final Map<String, String> params, final String... parts )
         throws MalformedURLException
     {
-        if ( parts == null || parts.length < 1 )
+        if ( (params == null || params.isEmpty()) && (parts == null || parts.length < 1 ))
         {
             return baseUrl;
         }
 
         final StringBuilder urlBuilder = new StringBuilder();
 
-        if ( parts[0] == null || !parts[0].startsWith( baseUrl ) )
+        if ( parts == null || parts.length < 1 || parts[0] == null || !parts[0].startsWith( baseUrl ) )
         {
             urlBuilder.append( baseUrl );
         }
