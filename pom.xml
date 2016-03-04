@@ -23,11 +23,11 @@
     <artifactId>commonjava</artifactId>
     <version>11</version>
   </parent>
-  
+
   <groupId>org.commonjava.util</groupId>
   <artifactId>jhttpc</artifactId>
   <version>1.2-SNAPSHOT</version>
-  
+
   <name>Java HTTP Client</name>
   <inceptionYear>2015</inceptionYear>
 
@@ -40,7 +40,7 @@
 
   <properties>
     <projectOwner>Red Hat, Inc.</projectOwner>
-    <javaVersion>1.7</javaVersion>
+    <javaVersion>1.6</javaVersion>
     <httpcVersion>4.4</httpcVersion>
     <dockerWaitFor>Setting LogLevel for all modules to trace6</dockerWaitFor>
     <!-- <dockerImage>docker.io/buildchimp/ssl-dojo:dev</dockerImage> -->
@@ -92,7 +92,7 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-  
+
   <dependencies>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
@@ -354,5 +354,5 @@ javax.net.debug=ssl:handshake:verbose
       </build>
     </profile>
   </profiles>
-  
+
 </project>
