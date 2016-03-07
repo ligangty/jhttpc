@@ -32,19 +32,18 @@ import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
 import org.apache.http.ssl.PrivateKeyStrategy;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.ssl.SSLContexts;
-import org.bouncycastle.pkcs.PKCSException;
+import org.commonjava.util.jhttpc.INTERNAL.conn.ConnectionManagerCache;
+import org.commonjava.util.jhttpc.INTERNAL.conn.ConnectionManagerTracker;
+import org.commonjava.util.jhttpc.INTERNAL.conn.SiteConnectionConfig;
+import org.commonjava.util.jhttpc.INTERNAL.conn.TrackedHttpClient;
+import org.commonjava.util.jhttpc.INTERNAL.util.CertEnumerator;
 import org.commonjava.util.jhttpc.INTERNAL.util.MonolithicKeyStrategy;
+import org.commonjava.util.jhttpc.INTERNAL.util.SSLUtils;
 import org.commonjava.util.jhttpc.auth.PasswordKey;
 import org.commonjava.util.jhttpc.auth.PasswordManager;
 import org.commonjava.util.jhttpc.auth.PasswordType;
-import org.commonjava.util.jhttpc.INTERNAL.conn.ConnectionManagerTracker;
-import org.commonjava.util.jhttpc.INTERNAL.conn.ConnectionManagerCache;
-import org.commonjava.util.jhttpc.INTERNAL.conn.SiteConnectionConfig;
-import org.commonjava.util.jhttpc.INTERNAL.conn.TrackedHttpClient;
 import org.commonjava.util.jhttpc.model.SiteConfig;
 import org.commonjava.util.jhttpc.model.SiteTrustType;
-import org.commonjava.util.jhttpc.INTERNAL.util.CertEnumerator;
-import org.commonjava.util.jhttpc.INTERNAL.util.SSLUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -245,12 +244,12 @@ public class HttpFactory
             catch ( IOException e )
             {
                 throw new JHttpCException( "Failed to read client SSL key/certificate from: %s. Reason: %s", e,
-                                           location, e.getMessage() );
+                        location, e.getMessage() );
             }
-            catch ( PKCSException e )
+            catch ( JHttpCException e )
             {
                 throw new JHttpCException( "Failed to read client SSL key/certificate from: %s. Reason: %s", e,
-                                           location, e.getMessage() );
+                        location, e.getMessage() );
             }
         }
         else

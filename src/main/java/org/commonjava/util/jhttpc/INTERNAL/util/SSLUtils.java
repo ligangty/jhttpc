@@ -24,23 +24,19 @@ import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.PEMDecryptorProvider;
 import org.bouncycastle.openssl.PEMEncryptedKeyPair;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.bc.BcPEMDecryptorProvider;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.operator.InputDecryptorProvider;
-import org.bouncycastle.pkcs.PKCS12PfxPdu;
 import org.bouncycastle.pkcs.PKCS8EncryptedPrivateKeyInfo;
 import org.bouncycastle.pkcs.PKCSException;
 import org.bouncycastle.pkcs.jcajce.JcePKCSPBEInputDecryptorProviderBuilder;
-import org.bouncycastle.util.io.pem.PemObject;
-import org.bouncycastle.util.io.pem.PemObjectParser;
+import org.commonjava.util.jhttpc.JHttpCException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.KeyManagerFactory;
 import javax.security.auth.x500.X500Principal;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -53,23 +49,17 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.Security;
-import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.KeySpec;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static org.apache.commons.codec.binary.Base64.decodeBase64;
@@ -85,8 +75,8 @@ public final class SSLUtils
     }
 
     public static KeyStore readKeyAndCert( final String pemContent, final String keyPass )
-            throws PKCSException, IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException,
-                   InvalidKeySpecException
+            throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException,
+            InvalidKeySpecException, JHttpCException
     {
         final KeyStore ks = KeyStore.getInstance( KeyStore.getDefaultType() );
         ks.load( null );
@@ -145,7 +135,16 @@ public final class SSLUtils
             else if ( pemObj instanceof PKCS8EncryptedPrivateKeyInfo )
             {
                 PKCS8EncryptedPrivateKeyInfo keyInfo = (PKCS8EncryptedPrivateKeyInfo) pemObj;
-                PrivateKeyInfo privateKeyInfo = keyInfo.decryptPrivateKeyInfo( provider );
+                PrivateKeyInfo privateKeyInfo = null;
+                try
+                {
+                    privateKeyInfo = keyInfo.decryptPrivateKeyInfo( provider );
+                }
+                catch (PKCSException e)
+                {
+                    throw new JHttpCException( "Failed to decrypt key/certificate: %s", e,
+                            e.getMessage() );
+                }
                 key = new JcaPEMKeyConverter().getPrivateKey( privateKeyInfo );
             }
             else if ( pemObj instanceof PEMEncryptedKeyPair )
