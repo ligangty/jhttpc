@@ -15,24 +15,11 @@
  */
 package org.commonjava.util.jhttpc.INTERNAL.util;
 
-import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.x500.AttributeTypeAndValue;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x500.style.IETFUtils;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.PEMEncryptedKeyPair;
-import org.bouncycastle.openssl.PEMKeyPair;
-import org.bouncycastle.openssl.PEMParser;
-import org.bouncycastle.openssl.bc.BcPEMDecryptorProvider;
-import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
-import org.bouncycastle.operator.InputDecryptorProvider;
-import org.bouncycastle.pkcs.PKCS8EncryptedPrivateKeyInfo;
-import org.bouncycastle.pkcs.PKCSException;
-import org.bouncycastle.pkcs.jcajce.JcePKCSPBEInputDecryptorProviderBuilder;
 import org.commonjava.util.jhttpc.JHttpCException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,13 +29,10 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.nio.charset.Charset;
-import java.security.KeyFactory;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -68,6 +52,11 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
 public final class SSLUtils
 {
 
+    private static final String[] BC_TEST_NAMES = {
+            "org.bouncycastle.jce.provider.BouncyCastleProvider",
+            "org.bouncycastle.openssl.PEMParser"
+    };
+
     private static final Integer DNSNAME_TYPE = 2;
 
     private SSLUtils()
@@ -78,94 +67,30 @@ public final class SSLUtils
             throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException,
             InvalidKeySpecException, JHttpCException
     {
-        final KeyStore ks = KeyStore.getInstance( KeyStore.getDefaultType() );
-        ks.load( null );
-
-        //        final KeyManagerFactory kmfactory = KeyManagerFactory.getInstance(
-        //                KeyManagerFactory.getDefaultAlgorithm());
-        //
-        //        kmfactory.init(ks, keyPass.toCharArray());
-
-        final CertificateFactory certFactory = CertificateFactory.getInstance( "X.509" );
-        final KeyFactory keyFactory = KeyFactory.getInstance( "RSA" );
-
-        final List<String> lines = readLines( pemContent );
-
-        String currentHeader = null;
-        final StringBuilder current = new StringBuilder();
-
-        int certIdx = 0;
         Logger logger = LoggerFactory.getLogger( SSLUtils.class );
 
-        BouncyCastleProvider bcProvider = new BouncyCastleProvider();
-        InputDecryptorProvider provider =
-                new JcePKCSPBEInputDecryptorProviderBuilder().setProvider( bcProvider ).build( keyPass.toCharArray() );
-
-        final List<Certificate> certs = new ArrayList<Certificate>();
-        PrivateKey key = null;
-
-        PEMParser pemParser = new PEMParser( new StringReader( pemContent ) );
-        Object pemObj = null;
-        while ( ( pemObj = pemParser.readObject() ) != null )
+        boolean bcEnabled = true;
+        for ( String bctestName : BC_TEST_NAMES )
         {
-            logger.debug( "Got PEM object: {}", pemObj );
-            if ( pemObj instanceof X509CertificateHolder )
+            try
             {
-                X509CertificateHolder holder = (X509CertificateHolder) pemObj;
-                X509Certificate certificate =
-                        new JcaX509CertificateConverter().setProvider( bcProvider ).getCertificate( holder );
-
-                certs.add( certificate );
-
-                Set<String> aliases = new HashSet<String>();
-                aliases.add( "certificate" + certIdx );
-
-                extractAliases( certificate, aliases );
-
-                KeyStore.TrustedCertificateEntry ksEntry = new KeyStore.TrustedCertificateEntry( certificate );
-                for ( String alias : aliases )
-                {
-                    ks.setEntry( alias, ksEntry, null );
-                    logger.debug( "Storing trusted cert under alias: {}\n  with DN: {}", alias,
-                                 certificate.getSubjectDN().getName() );
-                }
-
-                certIdx++;
+                Class.forName( bctestName );
             }
-            else if ( pemObj instanceof PKCS8EncryptedPrivateKeyInfo )
+            catch ( ClassNotFoundException e )
             {
-                PKCS8EncryptedPrivateKeyInfo keyInfo = (PKCS8EncryptedPrivateKeyInfo) pemObj;
-                PrivateKeyInfo privateKeyInfo = null;
-                try
-                {
-                    privateKeyInfo = keyInfo.decryptPrivateKeyInfo( provider );
-                }
-                catch (PKCSException e)
-                {
-                    throw new JHttpCException( "Failed to decrypt key/certificate: %s", e,
-                            e.getMessage() );
-                }
-                key = new JcaPEMKeyConverter().getPrivateKey( privateKeyInfo );
-            }
-            else if ( pemObj instanceof PEMEncryptedKeyPair )
-            {
-                PEMEncryptedKeyPair keyPair = (PEMEncryptedKeyPair) pemObj;
-                PEMKeyPair decryptedKeyPair = keyPair.decryptKeyPair( new BcPEMDecryptorProvider( keyPass.toCharArray() ) );
-                PrivateKeyInfo privateKeyInfo = decryptedKeyPair.getPrivateKeyInfo();
-                key = new JcaPEMKeyConverter().getPrivateKey( privateKeyInfo );
+                logger.warn(
+                        "One or more BouncyCastle jars (bcprov-jdk15on, bcpkix-jdk15on) are missing from the classpath! PEM SSL client keys are not supported!" );
+                bcEnabled = false;
+                break;
             }
         }
 
-        if ( key != null && !certs.isEmpty() )
+        if ( !bcEnabled )
         {
-            logger.debug( "Setting key entry: {}", key );
-            ks.setKeyEntry( MonolithicKeyStrategy.KEY, key, keyPass.toCharArray(),
-                            certs.toArray( new Certificate[certs.size()] ) );
+            return null;
         }
-        else
-        {
-            logger.debug( "No private key found in PEM!" );
-        }
+
+        KeyStore ks = BouncyCastleUtils.readKeyAndCertFromPem( pemContent, keyPass );
 
         Enumeration<String> aliases = ks.aliases();
         while ( aliases.hasMoreElements() )
@@ -285,7 +210,7 @@ public final class SSLUtils
         }
     }
 
-    private static List<String> readLines( final String content )
+    public static List<String> readLines( final String content )
             throws IOException
     {
         final List<String> lines = new ArrayList<String>();
