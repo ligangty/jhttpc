@@ -17,14 +17,11 @@ package org.commonjava.util.jhttpc;
 
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
@@ -39,6 +36,8 @@ import org.commonjava.util.jhttpc.INTERNAL.conn.TrackedHttpClient;
 import org.commonjava.util.jhttpc.INTERNAL.util.CertEnumerator;
 import org.commonjava.util.jhttpc.INTERNAL.util.MonolithicKeyStrategy;
 import org.commonjava.util.jhttpc.INTERNAL.util.SSLUtils;
+import org.commonjava.util.jhttpc.auth.BasicAuthenticator;
+import org.commonjava.util.jhttpc.auth.ClientAuthenticator;
 import org.commonjava.util.jhttpc.auth.PasswordKey;
 import org.commonjava.util.jhttpc.auth.PasswordManager;
 import org.commonjava.util.jhttpc.auth.PasswordType;
@@ -66,11 +65,21 @@ public class HttpFactory
 
     private final PasswordManager passwords;
 
+    private final ClientAuthenticator authenticator;
+
     private final ConnectionManagerCache connectionCache;
 
     public HttpFactory( final PasswordManager passwords )
     {
         this.passwords = passwords;
+        this.authenticator = new BasicAuthenticator( passwords );
+        this.connectionCache = new ConnectionManagerCache();
+    }
+
+    public HttpFactory( final ClientAuthenticator authenticator )
+    {
+        this.authenticator = authenticator;
+        this.passwords = null;
         this.connectionCache = new ConnectionManagerCache();
     }
 
@@ -91,10 +100,15 @@ public class HttpFactory
         CloseableHttpClient client;
         if ( location != null )
         {
-            final HttpClientBuilder builder = HttpClients.custom();
+            HttpClientBuilder builder = HttpClients.custom();
+
+            if ( authenticator != null )
+            {
+                builder = authenticator.decorateClientBuilder( builder );
+            }
 
             logger.debug( "Using site config: {} for advanced client options", location );
-            SiteConnectionConfig connConfig = new SiteConnectionConfig(location);
+            SiteConnectionConfig connConfig = new SiteConnectionConfig( location );
 
             final SSLConnectionSocketFactory sslFac = createSSLSocketFactory( location );
             if ( sslFac != null )
@@ -123,7 +137,7 @@ public class HttpFactory
                                                           .build() );
 
             client = new TrackedHttpClient( builder.build(), managerWrapper );
-//            client = builder.build();
+            //            client = builder.build();
         }
         else
         {
@@ -153,11 +167,10 @@ public class HttpFactory
     public HttpClientContext createContext( final SiteConfig location )
             throws JHttpCException
     {
-        final HttpClientContext ctx = HttpClientContext.create();
+        HttpClientContext ctx = HttpClientContext.create();
 
         if ( location != null )
         {
-            final CredentialsProvider creds = new BasicCredentialsProvider();
             final AuthScope as;
             try
             {
@@ -171,18 +184,21 @@ public class HttpFactory
 
             if ( location.getUser() != null )
             {
-                final String password = passwords.lookup( new PasswordKey( location, PasswordType.USER ) );
-                creds.setCredentials( as, new UsernamePasswordCredentials( location.getUser(), password ) );
+                if ( authenticator != null )
+                {
+                    ctx = authenticator.decoratePrototypeContext( as, location, PasswordType.USER, ctx );
+                }
             }
 
             if ( location.getProxyHost() != null && location.getProxyUser() != null )
             {
-                final String password = passwords.lookup( new PasswordKey( location, PasswordType.PROXY ) );
-                creds.setCredentials( new AuthScope( location.getProxyHost(), getProxyPort( location ) ),
-                                      new UsernamePasswordCredentials( location.getProxyUser(), password ) );
+                if ( authenticator != null )
+                {
+                    ctx = authenticator.decoratePrototypeContext(
+                            new AuthScope( location.getProxyHost(), getProxyPort( location ) ), location,
+                            PasswordType.PROXY, ctx );
+                }
             }
-
-            ctx.setCredentialsProvider( creds );
         }
 
         return ctx;
@@ -204,7 +220,8 @@ public class HttpFactory
             {
                 logger.error( "Invalid configuration. Location: {} cannot have an empty key password!",
                               location.getUri() );
-                throw new JHttpCException( "Location: " + location.getUri() + " is misconfigured! Key password cannot be empty." );
+                throw new JHttpCException(
+                        "Location: " + location.getUri() + " is misconfigured! Key password cannot be empty." );
             }
 
             try
@@ -244,12 +261,12 @@ public class HttpFactory
             catch ( IOException e )
             {
                 throw new JHttpCException( "Failed to read client SSL key/certificate from: %s. Reason: %s", e,
-                        location, e.getMessage() );
+                                           location, e.getMessage() );
             }
             catch ( JHttpCException e )
             {
                 throw new JHttpCException( "Failed to read client SSL key/certificate from: %s. Reason: %s", e,
-                        location, e.getMessage() );
+                                           location, e.getMessage() );
             }
         }
         else
@@ -293,8 +310,9 @@ public class HttpFactory
             }
             catch ( IOException e )
             {
-                throw new JHttpCException( "Failed to read server SSL certificate(s) (or couldn't parse server hostname) from: %s. Reason: %s", e,
-                                           location, e.getMessage() );
+                throw new JHttpCException(
+                        "Failed to read server SSL certificate(s) (or couldn't parse server hostname) from: %s. Reason: %s",
+                        e, location, e.getMessage() );
             }
         }
         else
