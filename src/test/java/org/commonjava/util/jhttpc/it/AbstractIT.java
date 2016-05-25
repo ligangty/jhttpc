@@ -17,7 +17,6 @@ package org.commonjava.util.jhttpc.it;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
@@ -180,7 +179,7 @@ public abstract class AbstractIT
             throws Exception
     {
         String pem = getServerCertsPem();
-        KeyStore store = SSLUtils.readCerts( pem, "somehost" );
+        KeyStore store = SSLUtils.decodePEMTrustStore( pem, "somehost" );
         Enumeration<String> aliases = store.aliases();
         while ( aliases.hasMoreElements() )
         {

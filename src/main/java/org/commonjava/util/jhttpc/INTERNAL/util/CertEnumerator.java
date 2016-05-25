@@ -56,10 +56,13 @@ public final class CertEnumerator
                     sb.append( "\n\t" ).append( cert.getSubjectDN() );
                 }
 
-                Key key = ks.getKey( alias, kcPass.toCharArray() );
-                if ( key != null )
+                if ( kcPass != null )
                 {
-                    sb.append("\n\t").append( key.getAlgorithm() ).append( " private key." );
+                    Key key = ks.getKey( alias, kcPass.toCharArray() );
+                    if ( key != null )
+                    {
+                        sb.append("\n\t").append( key.getAlgorithm() ).append( " private key." );
+                    }
                 }
             }
         }

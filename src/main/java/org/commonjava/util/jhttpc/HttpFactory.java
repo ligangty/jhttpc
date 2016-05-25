@@ -15,6 +15,7 @@
  */
 package org.commonjava.util.jhttpc;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.client.config.RequestConfig;
@@ -226,10 +227,10 @@ public class HttpFactory
 
             try
             {
-                logger.debug( "Reading Client SSL key from:\n\n{}\n\n", kcPem );
+                logger.trace( "Reading Client SSL key from:\n\n{}\n\n", kcPem );
                 ks = SSLUtils.readKeyAndCert( kcPem, kcPass );
 
-                logger.debug( "Keystore contains the following certificates: {}", new CertEnumerator( ks, kcPass ) );
+                logger.trace( "Keystore contains the following certificates: {}", new CertEnumerator( ks, kcPass ) );
             }
             catch ( final CertificateException e )
             {
@@ -279,13 +280,13 @@ public class HttpFactory
         //        logger.debug( "Server certificate PEM:\n{}", sPem );
         if ( sPem != null )
         {
-            logger.debug( "Adding server certificate(s) from: {}", location );
+            logger.debug( "Loading TrustStore (server SSL) information from: {}", location );
             try
             {
-                logger.debug( "Reading Server SSL cert from:\n\n{}\n\n", sPem );
-                ts = SSLUtils.readCerts( sPem, location.getHost() );
+                logger.trace( "Reading Server SSL cert from:\n\n{}\n\n", sPem );
+                ts = SSLUtils.decodePEMTrustStore( sPem, location.getHost() );
 
-                //                logger.debug( "Trust store contains the following certificates:\n{}", new CertEnumerator( ts ) );
+                logger.trace( "Trust store contains the following certificates:\n{}", new CertEnumerator( ts, null ) );
             }
             catch ( final CertificateException e )
             {
@@ -328,14 +329,14 @@ public class HttpFactory
                 SSLContextBuilder sslBuilder = SSLContexts.custom().useProtocol( SSLConnectionSocketFactory.TLS );
                 if ( ks != null )
                 {
-                    logger.debug( "Loading key material for SSL context..." );
+                    logger.trace( "Loading key material for SSL context..." );
                     PrivateKeyStrategy pkStrategy = new MonolithicKeyStrategy();
                     sslBuilder.loadKeyMaterial( ks, kcPass.toCharArray(), pkStrategy );
                 }
 
                 if ( ts != null )
                 {
-                    logger.debug( "Loading trust material for SSL context..." );
+                    logger.trace( "Loading trust material for SSL context..." );
 
                     SiteTrustType trustType = location.getTrustType();
                     if ( trustType == null )

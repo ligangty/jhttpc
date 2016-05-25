@@ -52,10 +52,8 @@ import static org.apache.commons.io.IOUtils.closeQuietly;
 public final class SSLUtils
 {
 
-    private static final String[] BC_TEST_NAMES = {
-            "org.bouncycastle.jce.provider.BouncyCastleProvider",
-            "org.bouncycastle.openssl.PEMParser"
-    };
+    private static final String[] BC_TEST_NAMES =
+            { "org.bouncycastle.jce.provider.BouncyCastleProvider", "org.bouncycastle.openssl.PEMParser" };
 
     private static final Integer DNSNAME_TYPE = 2;
 
@@ -65,7 +63,7 @@ public final class SSLUtils
 
     public static KeyStore readKeyAndCert( final String pemContent, final String keyPass )
             throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException,
-            InvalidKeySpecException, JHttpCException
+                   InvalidKeySpecException, JHttpCException
     {
         Logger logger = LoggerFactory.getLogger( SSLUtils.class );
 
@@ -96,16 +94,18 @@ public final class SSLUtils
         while ( aliases.hasMoreElements() )
         {
             String alias = aliases.nextElement();
-            logger.debug( "Got alias: {}. Is Cert? {} Is Private key? {}", alias, ks.isCertificateEntry( alias ),
+            logger.trace( "Got alias: {}. Is Cert? {} Is Private key? {}", alias, ks.isCertificateEntry( alias ),
                           ks.isKeyEntry( alias ) );
         }
 
         return ks;
     }
 
-    public static KeyStore readCerts( final String pemContent, final String aliasPrefix )
+    public static KeyStore decodePEMTrustStore( final String pemContent, final String aliasPrefix )
             throws IOException, CertificateException, KeyStoreException, NoSuchAlgorithmException
     {
+        Logger logger = LoggerFactory.getLogger( SSLUtils.class );
+
         final KeyStore ks = KeyStore.getInstance( KeyStore.getDefaultType() );
         ks.load( null );
 
@@ -113,33 +113,63 @@ public final class SSLUtils
 
         final List<String> lines = readLines( pemContent );
 
+        logger.trace( "Raw PEM lines:\n\n{}\n\n", new Object()
+        {
+            public String toString()
+            {
+                StringBuilder sb = new StringBuilder();
+                for ( String line : lines )
+                {
+                    if ( sb.length() > 0 )
+                    {
+                        sb.append( '\n' );
+                    }
+                    sb.append( line );
+                }
+                return sb.toString();
+            }
+        } );
+
         final StringBuilder current = new StringBuilder();
         final List<String> entries = new ArrayList<String>();
-        for ( final String line : lines )
+        for ( String line : lines )
         {
             if ( line == null )
             {
                 continue;
             }
 
+            line = line.trim();
+            logger.trace( "Examining PEM line: '{}'", line );
+
             if ( line.startsWith( "-----BEGIN" ) )
             {
+                logger.trace( "Detected beginning of entry: '{}'", line );
                 current.setLength( 0 );
             }
             else if ( line.startsWith( "-----END" ) )
             {
+                logger.trace( "End of entry. Adding PEM entry to decoding queue:\n\n'{}'\n\n", current );
                 entries.add( current.toString() );
             }
             else
             {
-                current.append( line.trim() );
+                logger.trace( "Append to current entry: '{}'", line );
+                current.append( line );
             }
         }
 
+        if ( current.length() > 0 )
+        {
+            logger.trace( "Left-over PEM content:\n\n'{}'\n\n", current );
+        }
+
+        logger.trace( "Found {} entries to decode.", entries.size() );
+
         int i = 0;
-        Logger logger = LoggerFactory.getLogger( SSLUtils.class );
         for ( final String entry : entries )
         {
+            logger.trace( "Decoding certificate info from:\n\n{}\n\n", entry );
             final byte[] data = decodeBase64( entry );
 
             final Certificate c = certFactory.generateCertificate( new ByteArrayInputStream( data ) );
@@ -161,9 +191,11 @@ public final class SSLUtils
             for ( String alias : aliases )
             {
                 ks.setEntry( alias, ksEntry, null );
-                logger.debug( "Storing trusted cert under alias: {}\n  with DN: {}", alias,
-                             cert.getSubjectDN().getName() );
+                logger.trace( "Storing trusted cert under alias: {}\n  with DN: {}", alias,
+                              cert.getSubjectDN().getName() );
             }
+
+            logger.trace( "Certificate added." );
 
             i++;
         }
@@ -181,6 +213,7 @@ public final class SSLUtils
 
         X500Principal x500Principal = cert.getSubjectX500Principal();
         X500Name x500Name = new X500Name( x500Principal.getName( X500Principal.RFC1779 ) );
+        logger.trace( "Certificate X.500 name: '{}'", x500Name.toString() );
 
         RDN[] matchingRDNs = x500Name.getRDNs( BCStyle.CN );
         if ( matchingRDNs != null && matchingRDNs.length > 0 )
@@ -189,7 +222,9 @@ public final class SSLUtils
             AttributeTypeAndValue typeAndValue = cn.getFirst();
             if ( typeAndValue != null )
             {
-                aliases.add( IETFUtils.valueToString( typeAndValue.getValue() ) );
+                String alias = IETFUtils.valueToString( typeAndValue.getValue() );
+                logger.trace( "Found certificate alias: '{}'", alias );
+                aliases.add( alias );
             }
         }
 
@@ -200,7 +235,9 @@ public final class SSLUtils
             {
                 if ( names.size() > 1 && ( DNSNAME_TYPE.equals( names.get( 0 ) ) ) )
                 {
-                    aliases.add( (String) names.get( 1 ) );
+                    String alias = (String) names.get( 1 );
+                    logger.trace( "Found subjectAlternativeName: '{}'", alias );
+                    aliases.add( alias );
                 }
             }
         }
