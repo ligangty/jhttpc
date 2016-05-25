@@ -89,7 +89,7 @@ public class BouncyCastleUtils
         Object pemObj = null;
         while ( ( pemObj = pemParser.readObject() ) != null )
         {
-            logger.debug( "Got PEM object: {}", pemObj );
+            logger.trace( "Got PEM object: {}", pemObj );
             if ( pemObj instanceof X509CertificateHolder )
             {
                 X509CertificateHolder holder = (X509CertificateHolder) pemObj;
@@ -107,7 +107,7 @@ public class BouncyCastleUtils
                 for ( String alias : aliases )
                 {
                     ks.setEntry( alias, ksEntry, null );
-                    logger.debug( "Storing trusted cert under alias: {}\n  with DN: {}", alias,
+                    logger.trace( "Storing trusted cert under alias: {}\n  with DN: {}", alias,
                                   certificate.getSubjectDN().getName() );
                 }
 
@@ -139,13 +139,13 @@ public class BouncyCastleUtils
 
         if ( key != null && !certs.isEmpty() )
         {
-            logger.debug( "Setting key entry: {}", key );
+            logger.trace( "Setting key entry: {}", key );
             ks.setKeyEntry( MonolithicKeyStrategy.KEY, key, keyPass.toCharArray(),
                             certs.toArray( new Certificate[certs.size()] ) );
         }
         else
         {
-            logger.debug( "No private key found in PEM!" );
+            logger.warn( "No private key found in PEM!" );
         }
 
         return ks;
