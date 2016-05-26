@@ -113,23 +113,6 @@ public final class SSLUtils
 
         final List<String> lines = readLines( pemContent );
 
-        logger.trace( "Raw PEM lines:\n\n{}\n\n", new Object()
-        {
-            public String toString()
-            {
-                StringBuilder sb = new StringBuilder();
-                for ( String line : lines )
-                {
-                    if ( sb.length() > 0 )
-                    {
-                        sb.append( '\n' );
-                    }
-                    sb.append( line );
-                }
-                return sb.toString();
-            }
-        } );
-
         final StringBuilder current = new StringBuilder();
         final List<String> entries = new ArrayList<String>();
         for ( String line : lines )
@@ -139,29 +122,18 @@ public final class SSLUtils
                 continue;
             }
 
-            line = line.trim();
-            logger.trace( "Examining PEM line: '{}'", line );
-
             if ( line.startsWith( "-----BEGIN" ) )
             {
-                logger.trace( "Detected beginning of entry: '{}'", line );
                 current.setLength( 0 );
             }
             else if ( line.startsWith( "-----END" ) )
             {
-                logger.trace( "End of entry. Adding PEM entry to decoding queue:\n\n'{}'\n\n", current );
                 entries.add( current.toString() );
             }
             else
             {
-                logger.trace( "Append to current entry: '{}'", line );
                 current.append( line );
             }
-        }
-
-        if ( current.length() > 0 )
-        {
-            logger.trace( "Left-over PEM content:\n\n'{}'\n\n", current );
         }
 
         logger.trace( "Found {} entries to decode.", entries.size() );
@@ -209,7 +181,7 @@ public final class SSLUtils
         Logger logger = LoggerFactory.getLogger( SSLUtils.class );
 
         X509Certificate cert = (X509Certificate) certificate;
-        logger.debug( "Extracting aliases from:\n\n{}\n\n", cert );
+//        logger.debug( "Extracting aliases from:\n\n{}\n\n", cert );
 
         X500Principal x500Principal = cert.getSubjectX500Principal();
         X500Name x500Name = new X500Name( x500Principal.getName( X500Principal.RFC1779 ) );
