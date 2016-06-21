@@ -39,6 +39,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -47,6 +48,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.commonjava.util.jhttpc.INTERNAL.util.SSLUtils.extractAliases;
 
@@ -56,9 +59,18 @@ import static org.commonjava.util.jhttpc.INTERNAL.util.SSLUtils.extractAliases;
  */
 public class BouncyCastleUtils
 {
+    private static final String KEY_TYPE_PATTERN = "BEGIN (.+) PRIVATE KEY";
+
+    static
+    {
+        Security.addProvider( new BouncyCastleProvider() );
+    }
+
     public static KeyStore readKeyAndCertFromPem( String pemContent, String keyPass )
             throws NoSuchAlgorithmException, CertificateException, KeyStoreException, IOException, JHttpCException
     {
+        Logger logger = LoggerFactory.getLogger( SSLUtils.class );
+
         final KeyStore ks = KeyStore.getInstance( KeyStore.getDefaultType() );
         ks.load( null );
 
@@ -68,7 +80,18 @@ public class BouncyCastleUtils
         //        kmfactory.init(ks, keyPass.toCharArray());
 
         final CertificateFactory certFactory = CertificateFactory.getInstance( "X.509" );
-        final KeyFactory keyFactory = KeyFactory.getInstance( "RSA" );
+
+        Pattern keyTypePattern = Pattern.compile( KEY_TYPE_PATTERN );
+        Matcher matcher = keyTypePattern.matcher( pemContent );
+
+        String keyType = "RSA";
+        if ( matcher.find() )
+        {
+            keyType = matcher.group( 1 );
+        }
+
+        logger.trace( "Using key factory for type: {}", keyType );
+        final KeyFactory keyFactory = KeyFactory.getInstance( keyType );
 
         final List<String> lines = SSLUtils.readLines( pemContent );
 
@@ -76,7 +99,6 @@ public class BouncyCastleUtils
         final StringBuilder current = new StringBuilder();
 
         int certIdx = 0;
-        Logger logger = LoggerFactory.getLogger( SSLUtils.class );
 
         BouncyCastleProvider bcProvider = new BouncyCastleProvider();
         InputDecryptorProvider provider =
@@ -135,6 +157,12 @@ public class BouncyCastleUtils
                 PrivateKeyInfo privateKeyInfo = decryptedKeyPair.getPrivateKeyInfo();
                 key = new JcaPEMKeyConverter().getPrivateKey( privateKeyInfo );
             }
+            else
+            {
+                logger.trace( "Got unrecognized PEM object: {} (class: {})", pemObj, (pemObj == null ? "NULL" : pemObj.getClass().getName()) );
+            }
+
+            logger.trace( "Got private key:\n{}\n", key );
         }
 
         if ( key != null && !certs.isEmpty() )
