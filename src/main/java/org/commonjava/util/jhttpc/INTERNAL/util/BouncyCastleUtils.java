@@ -79,28 +79,32 @@ public class BouncyCastleUtils
         //
         //        kmfactory.init(ks, keyPass.toCharArray());
 
-        final CertificateFactory certFactory = CertificateFactory.getInstance( "X.509" );
+//        final CertificateFactory certFactory = CertificateFactory.getInstance( "X.509" );
 
-        Pattern keyTypePattern = Pattern.compile( KEY_TYPE_PATTERN );
-        Matcher matcher = keyTypePattern.matcher( pemContent );
+//        Pattern keyTypePattern = Pattern.compile( KEY_TYPE_PATTERN );
+//        Matcher matcher = keyTypePattern.matcher( pemContent );
 
-        String keyType = "RSA";
-        if ( matcher.find() )
-        {
-            String type = matcher.group( 1 );
-            if ( !"ENCRYPTED".equals( type ) )
-            {
-                keyType = type;
-            }
-        }
+//        String keyType = "RSA";
+//        if ( matcher.find() )
+//        {
+//            String type = matcher.group( 1 );
+//            if ( "ENCRYPTED".equals( type ) )
+//            {
+//                keyType = "PKCS8";
+//            }
+//            else
+//            {
+//                keyType = type;
+//            }
+//        }
+//
+//        logger.trace( "Using key factory for type: {}", keyType );
+//        final KeyFactory keyFactory = KeyFactory.getInstance( keyType );
 
-        logger.trace( "Using key factory for type: {}", keyType );
-        final KeyFactory keyFactory = KeyFactory.getInstance( keyType );
-
-        final List<String> lines = SSLUtils.readLines( pemContent );
-
-        String currentHeader = null;
-        final StringBuilder current = new StringBuilder();
+//        final List<String> lines = SSLUtils.readLines( pemContent );
+//
+//        String currentHeader = null;
+//        final StringBuilder current = new StringBuilder();
 
         int certIdx = 0;
 
