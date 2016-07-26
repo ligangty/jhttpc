@@ -87,7 +87,11 @@ public class BouncyCastleUtils
         String keyType = "RSA";
         if ( matcher.find() )
         {
-            keyType = matcher.group( 1 );
+            String type = matcher.group( 1 );
+            if ( !"ENCRYPTED".equals( type ) )
+            {
+                keyType = type;
+            }
         }
 
         logger.trace( "Using key factory for type: {}", keyType );
