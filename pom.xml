@@ -47,6 +47,24 @@
     <dockerImage>docker.io/commonjava/ssl-dojo:1.1</dockerImage>
 
     <enforceBestPractices>false</enforceBestPractices>
+
+    <dockerProvider>local</dockerProvider>
+    <dockerNetwork>bridge</dockerNetwork>
+
+    <selfsigned-http-port>${docker.containers.selfsigned.ports.80/tcp.port}</selfsigned-http-port>
+    <selfsigned-https-port>${docker.containers.selfsigned.ports.443/tcp.port}</selfsigned-https-port>
+    <selfsigned-http-address>${docker.containers.selfsigned.ports.80/tcp.host}</selfsigned-http-address>
+    <selfsigned-https-address>${docker.containers.selfsigned.ports.443/tcp.host}</selfsigned-https-address>
+
+    <rootsigned-http-port>${docker.containers.rootsigned.ports.80/tcp.port}</rootsigned-http-port>
+    <rootsigned-https-port>${docker.containers.rootsigned.ports.443/tcp.port}</rootsigned-https-port>
+    <rootsigned-http-address>${docker.containers.rootsigned.ports.80/tcp.host}</rootsigned-http-address>
+    <rootsigned-https-address>${docker.containers.rootsigned.ports.443/tcp.host}</rootsigned-https-address>
+    
+    <intersigned-http-port>${docker.containers.intersigned.ports.80/tcp.port}</intersigned-http-port>
+    <intersigned-https-port>${docker.containers.intersigned.ports.443/tcp.port}</intersigned-https-port>
+    <intersigned-http-address>${docker.containers.intersigned.ports.80/tcp.host}</intersigned-http-address>
+    <intersigned-https-address>${docker.containers.intersigned.ports.443/tcp.host}</intersigned-https-address>
   </properties>
 
   <dependencyManagement>
@@ -226,6 +244,9 @@
                     </env>
                     <hostname>test.myco.com</hostname>
                     <waitForStartup>${dockerWaitFor}</waitForStartup>
+                    <hostConfig>
+                      <networkMode>${dockerNetwork}</networkMode>
+                    </hostConfig>
                   </container>
                   <container>
                     <id>rootsigned</id>
@@ -236,6 +257,9 @@
                     </env>
                     <hostname>test.myco.com</hostname>
                     <waitForStartup>${dockerWaitFor}</waitForStartup>
+                    <hostConfig>
+                      <networkMode>${dockerNetwork}</networkMode>
+                    </hostConfig>
                   </container>
                   <container>
                     <id>intersigned</id>
@@ -246,6 +270,9 @@
                     </env>
                     <hostname>test.myco.com</hostname>
                     <waitForStartup>${dockerWaitFor}</waitForStartup>
+                    <hostConfig>
+                      <networkMode>${dockerNetwork}</networkMode>
+                    </hostConfig>
                   </container>
                 </containers>
               </configuration>
@@ -276,20 +303,20 @@
                 <target>
                   <echo file="${project.build.directory}/docker.properties">
                     <![CDATA[
-docker.containers.selfsigned.ports.80/tcp.host=${docker.containers.selfsigned.ports.80/tcp.host}
-docker.containers.selfsigned.ports.443/tcp.host=${docker.containers.selfsigned.ports.443/tcp.host}
-docker.containers.selfsigned.ports.80/tcp.port=${docker.containers.selfsigned.ports.80/tcp.port}
-docker.containers.selfsigned.ports.443/tcp.port=${docker.containers.selfsigned.ports.443/tcp.port}
+docker.containers.selfsigned.ports.80/tcp.host=${selfsigned-http-address}
+docker.containers.selfsigned.ports.443/tcp.host=${selfsigned-https-address}
+docker.containers.selfsigned.ports.80/tcp.port=${selfsigned-http-port}
+docker.containers.selfsigned.ports.443/tcp.port=${selfsigned-https-port}
 
-docker.containers.rootsigned.ports.80/tcp.host=${docker.containers.rootsigned.ports.80/tcp.host}
-docker.containers.rootsigned.ports.443/tcp.host=${docker.containers.rootsigned.ports.443/tcp.host}
-docker.containers.rootsigned.ports.80/tcp.port=${docker.containers.rootsigned.ports.80/tcp.port}
-docker.containers.rootsigned.ports.443/tcp.port=${docker.containers.rootsigned.ports.443/tcp.port}
+docker.containers.rootsigned.ports.80/tcp.host=${rootsigned-http-address}
+docker.containers.rootsigned.ports.443/tcp.host=${rootsigned-https-address}
+docker.containers.rootsigned.ports.80/tcp.port=${rootsigned-http-port}
+docker.containers.rootsigned.ports.443/tcp.port=${rootsigned-https-port}
 
-docker.containers.intersigned.ports.80/tcp.host=${docker.containers.intersigned.ports.80/tcp.host}
-docker.containers.intersigned.ports.443/tcp.host=${docker.containers.intersigned.ports.443/tcp.host}
-docker.containers.intersigned.ports.80/tcp.port=${docker.containers.intersigned.ports.80/tcp.port}
-docker.containers.intersigned.ports.443/tcp.port=${docker.containers.intersigned.ports.443/tcp.port}
+docker.containers.intersigned.ports.80/tcp.host=${intersigned-http-address}
+docker.containers.intersigned.ports.443/tcp.host=${intersigned-https-address}
+docker.containers.intersigned.ports.80/tcp.port=${intersigned-http-port}
+docker.containers.intersigned.ports.443/tcp.port=${intersigned-https-port}
 
 javax.net.debug=ssl:handshake:verbose
 ]]>
@@ -331,6 +358,29 @@ javax.net.debug=ssl:handshake:verbose
   </build>
 
   <profiles>
+    <profile>
+      <id>ci</id>
+
+      <properties>
+        <dockerProvider>remote</dockerProvider>
+        <dockerNetwork>ci-network</dockerNetwork>
+
+        <selfsigned-http-port>80</selfsigned-http-port>
+        <selfsigned-https-port>443</selfsigned-https-port>
+        <selfsigned-http-address>${docker.containers.selfsigned.nets.ci-network}</selfsigned-http-address>
+        <selfsigned-https-address>${docker.containers.selfsigned.nets.ci-network}</selfsigned-https-address>
+
+        <rootsigned-http-port>80</rootsigned-http-port>
+        <rootsigned-https-port>443</rootsigned-https-port>
+        <rootsigned-http-address>${docker.containers.rootsigned.nets.ci-network}</rootsigned-http-address>
+        <rootsigned-https-address>${docker.containers.rootsigned.nets.ci-network}</rootsigned-https-address>
+        
+        <intersigned-http-port>80</intersigned-http-port>
+        <intersigned-https-port>443</intersigned-https-port>
+        <intersigned-http-address>${docker.containers.intersigned.nets.ci-network}</intersigned-http-address>
+        <intersigned-https-address>${docker.containers.intersigned.nets.ci-network}</intersigned-https-address>
+      </properties>
+    </profile>
     <profile>
       <id>local-its</id>
 
