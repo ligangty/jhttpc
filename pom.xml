@@ -62,6 +62,8 @@
     <rootsigned-https-port>${rootsigned-https}</rootsigned-https-port>
     <intersigned-http-port>${intersigned-http}</intersigned-http-port>
     <intersigned-https-port>${intersigned-https}</intersigned-https-port>
+
+    <f8-docker-version>0.15.14</f8-docker-version>
   </properties>
 
   <dependencyManagement>
@@ -219,7 +221,7 @@
         <plugin>
           <groupId>io.fabric8</groupId>
           <artifactId>docker-maven-plugin</artifactId>
-          <version>0.15-SNAPSHOT</version>
+          <version>${f8-docker-version}</version>
           <configuration>
             <images>
               <image>
@@ -389,6 +391,8 @@ javax.net.debug=ssl:handshake:verbose
         <rootsigned-https-port>443</rootsigned-https-port>
         <intersigned-http-port>80</intersigned-http-port>
         <intersigned-https-port>443</intersigned-https-port>
+
+        <f8-docker-version>0.15-SNAPSHOT</f8-docker-version>
       </properties>
 
       <build>
