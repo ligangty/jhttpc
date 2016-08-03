@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.security.KeyFactory;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -42,14 +41,11 @@ import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.commonjava.util.jhttpc.INTERNAL.util.SSLUtils.extractAliases;
 
@@ -79,32 +75,32 @@ public class BouncyCastleUtils
         //
         //        kmfactory.init(ks, keyPass.toCharArray());
 
-//        final CertificateFactory certFactory = CertificateFactory.getInstance( "X.509" );
+        //        final CertificateFactory certFactory = CertificateFactory.getInstance( "X.509" );
 
-//        Pattern keyTypePattern = Pattern.compile( KEY_TYPE_PATTERN );
-//        Matcher matcher = keyTypePattern.matcher( pemContent );
+        //        Pattern keyTypePattern = Pattern.compile( KEY_TYPE_PATTERN );
+        //        Matcher matcher = keyTypePattern.matcher( pemContent );
 
-//        String keyType = "RSA";
-//        if ( matcher.find() )
-//        {
-//            String type = matcher.group( 1 );
-//            if ( "ENCRYPTED".equals( type ) )
-//            {
-//                keyType = "PKCS8";
-//            }
-//            else
-//            {
-//                keyType = type;
-//            }
-//        }
-//
-//        logger.trace( "Using key factory for type: {}", keyType );
-//        final KeyFactory keyFactory = KeyFactory.getInstance( keyType );
+        //        String keyType = "RSA";
+        //        if ( matcher.find() )
+        //        {
+        //            String type = matcher.group( 1 );
+        //            if ( "ENCRYPTED".equals( type ) )
+        //            {
+        //                keyType = "PKCS8";
+        //            }
+        //            else
+        //            {
+        //                keyType = type;
+        //            }
+        //        }
+        //
+        //        logger.trace( "Using key factory for type: {}", keyType );
+        //        final KeyFactory keyFactory = KeyFactory.getInstance( keyType );
 
-//        final List<String> lines = SSLUtils.readLines( pemContent );
-//
-//        String currentHeader = null;
-//        final StringBuilder current = new StringBuilder();
+        //        final List<String> lines = SSLUtils.readLines( pemContent );
+        //
+        //        String currentHeader = null;
+        //        final StringBuilder current = new StringBuilder();
 
         int certIdx = 0;
 
@@ -151,23 +147,24 @@ public class BouncyCastleUtils
                 {
                     privateKeyInfo = keyInfo.decryptPrivateKeyInfo( provider );
                 }
-                catch (PKCSException e)
+                catch ( PKCSException e )
                 {
-                    throw new JHttpCException( "Failed to decrypt key/certificate: %s", e,
-                                               e.getMessage() );
+                    throw new JHttpCException( "Failed to decrypt key/certificate: %s", e, e.getMessage() );
                 }
                 key = new JcaPEMKeyConverter().getPrivateKey( privateKeyInfo );
             }
             else if ( pemObj instanceof PEMEncryptedKeyPair )
             {
                 PEMEncryptedKeyPair keyPair = (PEMEncryptedKeyPair) pemObj;
-                PEMKeyPair decryptedKeyPair = keyPair.decryptKeyPair( new BcPEMDecryptorProvider( keyPass.toCharArray() ) );
+                PEMKeyPair decryptedKeyPair =
+                        keyPair.decryptKeyPair( new BcPEMDecryptorProvider( keyPass.toCharArray() ) );
                 PrivateKeyInfo privateKeyInfo = decryptedKeyPair.getPrivateKeyInfo();
                 key = new JcaPEMKeyConverter().getPrivateKey( privateKeyInfo );
             }
             else
             {
-                logger.trace( "Got unrecognized PEM object: {} (class: {})", pemObj, (pemObj == null ? "NULL" : pemObj.getClass().getName()) );
+                logger.trace( "Got unrecognized PEM object: {} (class: {})", pemObj,
+                              ( pemObj == null ? "NULL" : pemObj.getClass().getName() ) );
             }
 
             logger.trace( "Got private key:\n{}\n", key );

@@ -63,7 +63,7 @@
     <intersigned-http-port>${intersigned-http}</intersigned-http-port>
     <intersigned-https-port>${intersigned-https}</intersigned-https-port>
 
-    <f8-docker-version>0.15.14</f8-docker-version>
+    <f8-docker-version>0.15.16</f8-docker-version>
   </properties>
 
   <dependencyManagement>
@@ -391,8 +391,6 @@ javax.net.debug=ssl:handshake:verbose
         <rootsigned-https-port>443</rootsigned-https-port>
         <intersigned-http-port>80</intersigned-http-port>
         <intersigned-https-port>443</intersigned-https-port>
-
-        <f8-docker-version>0.15-SNAPSHOT</f8-docker-version>
       </properties>
 
       <build>
