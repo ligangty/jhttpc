@@ -43,28 +43,27 @@
     <javaVersion>1.6</javaVersion>
     <httpcVersion>4.4</httpcVersion>
     <dockerWaitFor>Setting LogLevel for all modules to trace6</dockerWaitFor>
-    <!-- <dockerImage>docker.io/buildchimp/ssl-dojo:dev</dockerImage> -->
+
     <dockerImage>docker.io/commonjava/ssl-dojo:1.1</dockerImage>
+    <dockerStartTimeout>60000</dockerStartTimeout>
 
     <enforceBestPractices>false</enforceBestPractices>
 
-    <dockerProvider>local</dockerProvider>
-    <dockerNetwork>bridge</dockerNetwork>
+    <dockerNetwork>default</dockerNetwork>
+    <dockerNetworkMode>bridge</dockerNetworkMode>
 
-    <selfsigned-http-port>${docker.containers.selfsigned.ports.80/tcp.port}</selfsigned-http-port>
-    <selfsigned-https-port>${docker.containers.selfsigned.ports.443/tcp.port}</selfsigned-https-port>
-    <selfsigned-http-address>${docker.containers.selfsigned.ports.80/tcp.host}</selfsigned-http-address>
-    <selfsigned-https-address>${docker.containers.selfsigned.ports.443/tcp.host}</selfsigned-https-address>
+    <selfsigned-host>localhost</selfsigned-host>
+    <rootsigned-host>localhost</rootsigned-host>
+    <intersigned-host>localhost</intersigned-host>
 
-    <rootsigned-http-port>${docker.containers.rootsigned.ports.80/tcp.port}</rootsigned-http-port>
-    <rootsigned-https-port>${docker.containers.rootsigned.ports.443/tcp.port}</rootsigned-https-port>
-    <rootsigned-http-address>${docker.containers.rootsigned.ports.80/tcp.host}</rootsigned-http-address>
-    <rootsigned-https-address>${docker.containers.rootsigned.ports.443/tcp.host}</rootsigned-https-address>
-    
-    <intersigned-http-port>${docker.containers.intersigned.ports.80/tcp.port}</intersigned-http-port>
-    <intersigned-https-port>${docker.containers.intersigned.ports.443/tcp.port}</intersigned-https-port>
-    <intersigned-http-address>${docker.containers.intersigned.ports.80/tcp.host}</intersigned-http-address>
-    <intersigned-https-address>${docker.containers.intersigned.ports.443/tcp.host}</intersigned-https-address>
+    <selfsigned-http-port>${selfsigned-http}</selfsigned-http-port>
+    <selfsigned-https-port>${selfsigned-https}</selfsigned-https-port>
+    <rootsigned-http-port>${rootsigned-http}</rootsigned-http-port>
+    <rootsigned-https-port>${rootsigned-https}</rootsigned-https-port>
+    <intersigned-http-port>${intersigned-http}</intersigned-http-port>
+    <intersigned-https-port>${intersigned-https}</intersigned-https-port>
+
+    <f8-docker-version>0.15.14</f8-docker-version>
   </properties>
 
   <dependencyManagement>
@@ -220,72 +219,90 @@
           </configuration>
         </plugin>
         <plugin>
-          <!-- See: https://github.com/wouterd/docker-maven-plugin -->
-          <groupId>net.wouterdanes.docker</groupId>
+          <groupId>io.fabric8</groupId>
           <artifactId>docker-maven-plugin</artifactId>
-          <version>5.0.1-SNAPSHOT</version>
+          <version>${f8-docker-version}</version>
+          <configuration>
+            <images>
+              <image>
+                <alias>selfsigned</alias>
+                <name>${dockerImage}</name>
+                <run>
+                  <ports>
+                    <port>selfsigned-http:80</port>
+                    <port>selfsigned-https:443</port>
+                  </ports>
+                  <env>
+                    <CA_TYPE>self</CA_TYPE>
+                    <CA_HOST>test.myco.com</CA_HOST>
+                  </env>
+                  <wait>
+                    <log>${dockerWaitFor}</log>
+                    <time>${dockerStartTimeout}</time>
+                  </wait>
+                  <network>
+                    <mode>${dockerNetworkMode}</mode>
+                    <name>${dockerNetwork}</name>
+                    <alias>selfsigned</alias>
+                  </network>
+                </run>
+              </image>
+              <image>
+                <alias>rootsigned</alias>
+                <name>${dockerImage}</name>
+                <run>
+                  <ports>
+                    <port>rootsigned-http:80</port>
+                    <port>rootsigned-https:443</port>
+                  </ports>
+                  <env>
+                    <CA_TYPE>single</CA_TYPE>
+                    <CA_HOST>test.myco.com</CA_HOST>
+                  </env>
+                  <wait>
+                    <log>${dockerWaitFor}</log>
+                    <time>${dockerStartTimeout}</time>
+                  </wait>
+                  <network>
+                    <mode>${dockerNetworkMode}</mode>
+                    <name>${dockerNetwork}</name>
+                    <alias>rootsigned</alias>
+                  </network>
+                </run>
+              </image>
+              <image>
+                <alias>intersigned</alias>
+                <name>${dockerImage}</name>
+                <run>
+                  <ports>
+                    <port>intersigned-http:80</port>
+                    <port>intersigned-https:443</port>
+                  </ports>
+                  <env>
+                    <CA_TYPE>multi</CA_TYPE>
+                    <CA_HOST>test.myco.com</CA_HOST>
+                  </env>
+                  <wait>
+                    <log>${dockerWaitFor}</log>
+                    <time>${dockerStartTimeout}</time>
+                  </wait>
+                  <network>
+                    <mode>${dockerNetworkMode}</mode>
+                    <name>${dockerNetwork}</name>
+                    <alias>intersigned</alias>
+                  </network>
+                </run>
+              </image>
+            </images>
+          </configuration>
           <executions>
             <execution>
-              <id>start-IT-containers</id>
+              <id>docker-maint</id>
               <goals>
-                <goal>start-containers</goal>
+                <goal>start</goal>
+                <goal>stop</goal>
+                <goal>remove</goal>
               </goals>
-              <phase>pre-integration-test</phase>
-              <configuration>
-                <!-- <forceCleanup>false</forceCleanup> -->
-                <providerName>${dockerProvider}</providerName>
-                <containers>
-                  <container>
-                    <id>selfsigned</id>
-                    <image>${dockerImage}</image>
-                    <env>
-                      <CA_TYPE>self</CA_TYPE>
-                      <CA_HOST>test.myco.com</CA_HOST>
-                    </env>
-                    <hostname>test.myco.com</hostname>
-                    <waitForStartup>${dockerWaitFor}</waitForStartup>
-                    <hostConfig>
-                      <networkMode>${dockerNetwork}</networkMode>
-                    </hostConfig>
-                  </container>
-                  <container>
-                    <id>rootsigned</id>
-                    <image>${dockerImage}</image>
-                    <env>
-                      <CA_TYPE>single</CA_TYPE>
-                      <CA_HOST>test.myco.com</CA_HOST>
-                    </env>
-                    <hostname>test.myco.com</hostname>
-                    <waitForStartup>${dockerWaitFor}</waitForStartup>
-                    <hostConfig>
-                      <networkMode>${dockerNetwork}</networkMode>
-                    </hostConfig>
-                  </container>
-                  <container>
-                    <id>intersigned</id>
-                    <image>${dockerImage}</image>
-                    <env>
-                      <CA_TYPE>multi</CA_TYPE>
-                      <CA_HOST>test.myco.com</CA_HOST>
-                    </env>
-                    <hostname>test.myco.com</hostname>
-                    <waitForStartup>${dockerWaitFor}</waitForStartup>
-                    <hostConfig>
-                      <networkMode>${dockerNetwork}</networkMode>
-                    </hostConfig>
-                  </container>
-                </containers>
-              </configuration>
-            </execution>
-            <execution>
-              <id>stop-IT-containers</id>
-              <goals>
-                <goal>stop-containers</goal>
-              </goals>
-              <phase>post-integration-test</phase>
-              <configuration>
-                <logs>${project.build.directory}/docker-logs</logs>
-              </configuration>
             </execution>
           </executions>
         </plugin>
@@ -303,18 +320,18 @@
                 <target>
                   <echo file="${project.build.directory}/docker.properties">
                     <![CDATA[
-docker.containers.selfsigned.ports.80/tcp.host=${selfsigned-http-address}
-docker.containers.selfsigned.ports.443/tcp.host=${selfsigned-https-address}
+docker.containers.selfsigned.ports.80/tcp.host=${selfsigned-host}
+docker.containers.selfsigned.ports.443/tcp.host=${selfsigned-host}
 docker.containers.selfsigned.ports.80/tcp.port=${selfsigned-http-port}
 docker.containers.selfsigned.ports.443/tcp.port=${selfsigned-https-port}
 
-docker.containers.rootsigned.ports.80/tcp.host=${rootsigned-http-address}
-docker.containers.rootsigned.ports.443/tcp.host=${rootsigned-https-address}
+docker.containers.rootsigned.ports.80/tcp.host=${rootsigned-host}
+docker.containers.rootsigned.ports.443/tcp.host=${rootsigned-host}
 docker.containers.rootsigned.ports.80/tcp.port=${rootsigned-http-port}
 docker.containers.rootsigned.ports.443/tcp.port=${rootsigned-https-port}
 
-docker.containers.intersigned.ports.80/tcp.host=${intersigned-http-address}
-docker.containers.intersigned.ports.443/tcp.host=${intersigned-https-address}
+docker.containers.intersigned.ports.80/tcp.host=${intersigned-host}
+docker.containers.intersigned.ports.443/tcp.host=${intersigned-host}
 docker.containers.intersigned.ports.80/tcp.port=${intersigned-http-port}
 docker.containers.intersigned.ports.443/tcp.port=${intersigned-https-port}
 
@@ -362,29 +379,26 @@ javax.net.debug=ssl:handshake:verbose
       <id>ci</id>
 
       <properties>
-        <dockerProvider>remote</dockerProvider>
+        <dockerNetworkMode>custom</dockerNetworkMode>
         <dockerNetwork>ci-network</dockerNetwork>
 
+        <selfsigned-host>${docker.container.selfsigned.net.ci-network.ip}</selfsigned-host>
+        <rootsigned-host>${docker.container.rootsigned.net.ci-network.ip}</rootsigned-host>
+        <intersigned-host>${docker.container.intersigned.net.ci-network.ip}</intersigned-host>
         <selfsigned-http-port>80</selfsigned-http-port>
         <selfsigned-https-port>443</selfsigned-https-port>
-        <selfsigned-http-address>${docker.containers.selfsigned.nets.ci-network}</selfsigned-http-address>
-        <selfsigned-https-address>${docker.containers.selfsigned.nets.ci-network}</selfsigned-https-address>
-
         <rootsigned-http-port>80</rootsigned-http-port>
         <rootsigned-https-port>443</rootsigned-https-port>
-        <rootsigned-http-address>${docker.containers.rootsigned.nets.ci-network}</rootsigned-http-address>
-        <rootsigned-https-address>${docker.containers.rootsigned.nets.ci-network}</rootsigned-https-address>
-        
         <intersigned-http-port>80</intersigned-http-port>
         <intersigned-https-port>443</intersigned-https-port>
-        <intersigned-http-address>${docker.containers.intersigned.nets.ci-network}</intersigned-http-address>
-        <intersigned-https-address>${docker.containers.intersigned.nets.ci-network}</intersigned-https-address>
+
+        <f8-docker-version>0.15-SNAPSHOT</f8-docker-version>
       </properties>
 
       <build>
         <plugins>
           <plugin>
-            <groupId>net.wouterdanes.docker</groupId>
+            <groupId>io.fabric8</groupId>
             <artifactId>docker-maven-plugin</artifactId>
           </plugin>
           <plugin>
@@ -398,15 +412,10 @@ javax.net.debug=ssl:handshake:verbose
     </profile>
     <profile>
       <id>local-its</id>
-
-      <properties>
-        <dockerProvider>local</dockerProvider>
-      </properties>
-
       <build>
         <plugins>
           <plugin>
-            <groupId>net.wouterdanes.docker</groupId>
+            <groupId>io.fabric8</groupId>
             <artifactId>docker-maven-plugin</artifactId>
           </plugin>
           <plugin>
