@@ -240,6 +240,9 @@
                     <log>${dockerWaitFor}</log>
                     <time>${dockerStartTimeout}</time>
                   </wait>
+                  <log>
+                    <file>${project.build.directory}/selfsigned.log</file>
+                  </log>
                   <network>
                     <mode>${dockerNetworkMode}</mode>
                     <name>${dockerNetwork}</name>
@@ -263,6 +266,9 @@
                     <log>${dockerWaitFor}</log>
                     <time>${dockerStartTimeout}</time>
                   </wait>
+                  <log>
+                    <file>${project.build.directory}/rootsigned.log</file>
+                  </log>
                   <network>
                     <mode>${dockerNetworkMode}</mode>
                     <name>${dockerNetwork}</name>
@@ -286,6 +292,9 @@
                     <log>${dockerWaitFor}</log>
                     <time>${dockerStartTimeout}</time>
                   </wait>
+                  <log>
+                    <file>${project.build.directory}/intersigned.log</file>
+                  </log>
                   <network>
                     <mode>${dockerNetworkMode}</mode>
                     <name>${dockerNetwork}</name>
