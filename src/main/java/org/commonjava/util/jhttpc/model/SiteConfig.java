@@ -156,7 +156,7 @@ public final class SiteConfig
         return value == null ? defaultValue : type.cast( value );
     }
 
-    public synchronized Object setAttribute( String key, String value )
+    public synchronized Object setAttribute( String key, Object value )
     {
         if ( attributes == null )
         {

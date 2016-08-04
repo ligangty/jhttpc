@@ -62,6 +62,8 @@ import java.security.spec.InvalidKeySpecException;
 public class HttpFactory
         implements Closeable
 {
+    private static final String SSL_FACTORY_ATTRIB = "ssl-factory";
+
     private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     private final PasswordManager passwords;
@@ -208,6 +210,12 @@ public class HttpFactory
     private SSLConnectionSocketFactory createSSLSocketFactory( final SiteConfig location )
             throws JHttpCException
     {
+        SSLConnectionSocketFactory fac = (SSLConnectionSocketFactory) location.getAttribute( SSL_FACTORY_ATTRIB );
+        if ( fac != null )
+        {
+            return fac;
+        }
+
         KeyStore ks = null;
         KeyStore ts = null;
 
@@ -349,7 +357,9 @@ public class HttpFactory
 
                 SSLContext ctx = sslBuilder.build();
 
-                return new SSLConnectionSocketFactory( ctx, new DefaultHostnameVerifier() );
+                fac = new SSLConnectionSocketFactory( ctx, new DefaultHostnameVerifier() );
+                location.setAttribute( SSL_FACTORY_ATTRIB, fac );
+                return fac;
             }
             catch ( final KeyManagementException e )
             {
