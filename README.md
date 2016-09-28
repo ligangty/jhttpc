@@ -2,6 +2,15 @@
 
 jHTTPc is a wrapper around Apache HttpClient that simplifies use cases related to server-side embedding, such as PEM-oriented SSL configuration. Using jHTTPc, you don't have to work directly with KeyStores, and you can specify an independent SSL configuration for each host to which your server connects. You can use PEM files on the system, or even PEM-encoded strings stored by some other mechanism. This also makes it easier to support user-driven configuration of these hosts via a server UI (or even REST), since keystore management happens behind the scenes. 
 
+* [Basics](#basics)
+* [Proxies](#proxies)
+* [Basic Authentication](#basic_auth)
+* [Other Goodies](#etc)
+* [Custom Authenticators](#authenticators)
+
+##Basics
+<a name="basics"></a>
+
 It's very easy to start using:
 
 ```
@@ -21,6 +30,7 @@ HttpClient client = factory.createClient( site );
 ```
 
 ##Proxies
+<a name="proxies"></a>
 
 If you need to use a proxy server (with authentication), you can add the following:
 
@@ -33,6 +43,7 @@ passwords.bind( "somepassword", siteConfig, PasswordType.PROXY );
 ```
 
 ##Basic Authentication
+<a name="basic_auth"></a>
 
 If you need good old basic authentication (in addition to client SSL?!), you can specify that as well:
 
@@ -45,6 +56,7 @@ passwords.bind( "somepassword", siteConfig, PasswordType.USER );
 ```
 
 ##Other Goodies
+<a name="etc"></a>
 
 There are other configurations you can specify on a per-site basis as well:
 
@@ -55,6 +67,7 @@ siteBuilder.withMaxConnections( 20 )
 ```
 
 ##Custom Authenticators
+<a name="authenticators"></a>
 
 If you need some other authentication mechanism, you can implement that by extending `ClientAuthenticator` and passing in your own authenticator instance via the `HttpFactory(ClientAuthenticator)` constructor. For instance, a simple OAuth bearer token authenticator might look like this:
 
