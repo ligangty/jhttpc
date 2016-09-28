@@ -65,7 +65,7 @@ public class BouncyCastleUtils
     public static KeyStore readKeyAndCertFromPem( String pemContent, String keyPass )
             throws NoSuchAlgorithmException, CertificateException, KeyStoreException, IOException, JHttpCException
     {
-        Logger logger = LoggerFactory.getLogger( SSLUtils.class );
+        Logger logger = LoggerFactory.getLogger( BouncyCastleUtils.class );
 
         final KeyStore ks = KeyStore.getInstance( KeyStore.getDefaultType() );
         ks.load( null );
