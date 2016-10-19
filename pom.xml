@@ -40,7 +40,7 @@
 
   <properties>
     <projectOwner>Red Hat, Inc.</projectOwner>
-    <javaVersion>1.6</javaVersion>
+    <javaVersion>1.7</javaVersion>
     <httpcVersion>4.4</httpcVersion>
     <dockerWaitFor>Setting LogLevel for all modules to trace6</dockerWaitFor>
 
@@ -214,8 +214,8 @@
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
           <configuration>
-            <source>1.6</source>
-            <target>1.6</target>
+            <source>${javaVersion}</source>
+            <target>${javaVersion}</target>
           </configuration>
         </plugin>
         <plugin>
