@@ -221,7 +221,7 @@ public class HttpFactory
 
         final String kcPem = location.getKeyCertPem();
 
-        final String kcPass = passwords.lookup( new PasswordKey( location, PasswordType.KEY ) );
+        final String kcPass = passwords == null ? null : passwords.lookup( new PasswordKey( location, PasswordType.KEY ) );
         if ( kcPem != null )
         {
             logger.debug( "Adding client key/certificate from: {}", location );
