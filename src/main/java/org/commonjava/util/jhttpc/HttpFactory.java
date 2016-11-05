@@ -18,11 +18,13 @@ package org.commonjava.util.jhttpc;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
@@ -63,6 +65,8 @@ public class HttpFactory
         implements Closeable
 {
     private static final String SSL_FACTORY_ATTRIB = "ssl-factory";
+
+    private static final String COOKIE_STORE = "cookie-store";
 
     private final Logger logger = LoggerFactory.getLogger( getClass() );
 
@@ -174,6 +178,15 @@ public class HttpFactory
 
         if ( location != null )
         {
+            CookieStore cookieStore = (CookieStore) location.getAttribute( COOKIE_STORE );
+            if ( cookieStore == null )
+            {
+                cookieStore = new BasicCookieStore();
+                location.setAttribute( COOKIE_STORE, cookieStore );
+            }
+
+            ctx.setCookieStore( cookieStore );
+
             final AuthScope as;
             try
             {
@@ -221,7 +234,7 @@ public class HttpFactory
 
         final String kcPem = location.getKeyCertPem();
 
-        final String kcPass = passwords.lookup( new PasswordKey( location, PasswordType.KEY ) );
+        final String kcPass = passwords == null ? null : passwords.lookup( new PasswordKey( location, PasswordType.KEY ) );
         if ( kcPem != null )
         {
             logger.debug( "Adding client key/certificate from: {}", location );
