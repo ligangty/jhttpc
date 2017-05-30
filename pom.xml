@@ -39,6 +39,7 @@
   </scm>
 
   <properties>
+    <pmd.skip>true</pmd.skip>
     <projectOwner>Red Hat, Inc.</projectOwner>
     <javaVersion>1.7</javaVersion>
     <httpcoreVersion>4.4.6</httpcoreVersion>
