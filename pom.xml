@@ -395,7 +395,7 @@ javax.net.debug=ssl:handshake:verbose
     <profile>
       <id>ci</id>
 
-      <properties>
+<!--       <properties>
         <dockerNetworkMode>custom</dockerNetworkMode>
         <dockerNetwork>ci-network</dockerNetwork>
 
@@ -424,7 +424,7 @@ javax.net.debug=ssl:handshake:verbose
           </plugin>
         </plugins>
       </build>
-    </profile>
+ -->    </profile>
     <profile>
       <id>local-its</id>
       <build>
