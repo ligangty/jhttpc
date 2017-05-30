@@ -94,4 +94,9 @@ public class SiteConnectionConfig
     {
         return config.getMaxConnections();
     }
+
+    public String getId()
+    {
+        return config.getId();
+    }
 }

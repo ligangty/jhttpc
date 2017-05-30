@@ -15,7 +15,15 @@
  */
 package org.commonjava.util.jhttpc.INTERNAL.conn;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.config.MessageConstraints;
+import org.apache.http.impl.conn.DefaultHttpResponseParserFactory;
+import org.apache.http.impl.conn.ManagedHttpClientConnectionFactory;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.impl.io.DefaultHttpResponseParser;
+import org.apache.http.io.HttpMessageParser;
+import org.apache.http.io.HttpMessageParserFactory;
+import org.apache.http.io.SessionInputBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +47,22 @@ public class ConnectionManagerTracker
     {
         if ( manager == null )
         {
-            PoolingHttpClientConnectionManager poolingMgr = new PoolingHttpClientConnectionManager(config.getSocketFactoryRegistry());
+            Logger logger = LoggerFactory.getLogger( getClass() );
+            logger.info( "Creating connection pool for: {} with {} connections.", config.getId(),
+                         config.getMaxConnections() );
+
+//            ManagedHttpClientConnectionFactory fac =
+//                    new ManagedHttpClientConnectionFactory( new BestEffortResponseParserFactory() );
+
+            ManagedHttpClientConnectionFactory fac =
+                    new ManagedHttpClientConnectionFactory( new ResponseParserFactory() );
+
+            PoolingHttpClientConnectionManager poolingMgr =
+                    new PoolingHttpClientConnectionManager( config.getSocketFactoryRegistry(), fac );
+
+//            PoolingHttpClientConnectionManager poolingMgr =
+//                    new PoolingHttpClientConnectionManager( config.getSocketFactoryRegistry() );
+
             poolingMgr.setMaxTotal( config.getMaxConnections() );
 
             manager = new CloseBlockingConnectionManager( config, poolingMgr );
@@ -112,5 +135,16 @@ public class ConnectionManagerTracker
         return "ConnectionManagerTracker{" +
                 "config=" + config +
                 ", manager=" + manager + ", instance=" + super.hashCode() + '}';
+    }
+
+    private class ResponseParserFactory
+            implements HttpMessageParserFactory<HttpResponse>
+    {
+        @Override
+        public HttpMessageParser<HttpResponse> create( final SessionInputBuffer sessionInputBuffer,
+                                                       final MessageConstraints messageConstraints )
+        {
+            return new DefaultHttpResponseParser( sessionInputBuffer, messageConstraints );
+        }
     }
 }

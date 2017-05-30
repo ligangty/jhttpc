@@ -15,13 +15,14 @@
  */
 package org.commonjava.util.jhttpc.it.root;
 
-import org.commonjava.util.jhttpc.it.AbstractIT;
+import org.commonjava.util.jhttpc.it.AbstractSSLTestsIT;
+import org.commonjava.util.jhttpc.model.SiteConfigBuilder;
 
 /**
  * Created by jdcasey on 10/30/15.
  */
 public class RootSignedIT
-        extends AbstractIT
+        extends AbstractSSLTestsIT
 {
     @Override
     protected String getContainerId()
@@ -30,10 +31,9 @@ public class RootSignedIT
     }
 
     @Override
-    protected String[] getCertificatePaths()
+    protected SiteConfigBuilder getSiteConfigBuilder()
+            throws Exception
     {
-        return new String[]{SITE_CERT_PATH};
-//        return new String[]{SSL_CONFIG_BASE + "/root.crt", SITE_CERT_PATH};
+        return getNormalSiteConfigBuilder();
     }
-
 }
