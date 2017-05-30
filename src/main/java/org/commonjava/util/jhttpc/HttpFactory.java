@@ -127,6 +127,7 @@ public class HttpFactory
             }
 
             ConnectionManagerTracker managerWrapper = connectionCache.getTrackerFor( connConfig );
+            logger.debug( "Using connection manager tracker: {}", managerWrapper );
             builder.setConnectionManager( managerWrapper.acquire() );
 
             if ( location.getProxyHost() != null )

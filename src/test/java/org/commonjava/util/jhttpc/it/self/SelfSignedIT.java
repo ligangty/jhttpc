@@ -15,17 +15,15 @@
  */
 package org.commonjava.util.jhttpc.it.self;
 
-import org.commonjava.util.jhttpc.it.AbstractIT;
-import org.commonjava.util.jhttpc.model.SiteConfig;
+import org.commonjava.util.jhttpc.it.AbstractSSLTestsIT;
 import org.commonjava.util.jhttpc.model.SiteConfigBuilder;
 import org.commonjava.util.jhttpc.model.SiteTrustType;
-import org.junit.Ignore;
 
 /**
  * Created by jdcasey on 10/30/15.
  */
 public class SelfSignedIT
-        extends AbstractIT
+        extends AbstractSSLTestsIT
 {
 //    @Override
 //    @Ignore( "Not supported in self-signed scenarios")
@@ -33,26 +31,5 @@ public class SelfSignedIT
 //            throws Exception
 //    {
 //    }
-
-    @Override
-    protected String getContainerId()
-    {
-        return "selfsigned";
-    }
-
-    @Override
-    protected String[] getCertificatePaths()
-    {
-        return new String[] { SITE_CERT_PATH };
-    }
-
-    @Override
-    protected SiteConfigBuilder getSiteConfigBuilder()
-            throws Exception
-    {
-        return new SiteConfigBuilder( getContainerId(), getSSLBaseUrl() ).withServerCertPem( getServerCertsPem() )
-                                                                         .withTrustType(
-                                                                                 SiteTrustType.TRUST_SELF_SIGNED );
-    }
 
 }

@@ -26,6 +26,8 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HttpContext;
 import org.commonjava.util.jhttpc.INTERNAL.util.HttpUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -56,6 +58,8 @@ public class TrackedHttpClient
     protected CloseableHttpResponse doExecute( HttpHost target, HttpRequest request, HttpContext context )
             throws IOException, ClientProtocolException
     {
+        Logger logger = LoggerFactory.getLogger( getClass() );
+        logger.info( "Tracking request/response" );
         requests.add( new WeakReference<HttpRequest>( request ) );
 
         CloseableHttpResponse response = delegate.execute( target, request, context );
@@ -64,62 +68,64 @@ public class TrackedHttpClient
         return response;
     }
 
-    @Override
-    public CloseableHttpResponse execute( HttpHost target, HttpRequest request, HttpContext context )
-            throws IOException, ClientProtocolException
-    {
-        return delegate.execute( target, request, context );
-    }
-
-    @Override
-    public CloseableHttpResponse execute( HttpUriRequest request, HttpContext context )
-            throws IOException, ClientProtocolException
-    {
-        return delegate.execute( request, context );
-    }
-
-    @Override
-    public CloseableHttpResponse execute( HttpUriRequest request )
-            throws IOException, ClientProtocolException
-    {
-        return delegate.execute( request );
-    }
-
-    @Override
-    public CloseableHttpResponse execute( HttpHost target, HttpRequest request )
-            throws IOException, ClientProtocolException
-    {
-        return delegate.execute( target, request );
-    }
-
-    @Override
-    public <T> T execute( HttpUriRequest request, ResponseHandler<? extends T> responseHandler )
-            throws IOException, ClientProtocolException
-    {
-        return delegate.execute( request, responseHandler );
-    }
-
-    @Override
-    public <T> T execute( HttpUriRequest request, ResponseHandler<? extends T> responseHandler, HttpContext context )
-            throws IOException, ClientProtocolException
-    {
-        return delegate.execute( request, responseHandler, context );
-    }
-
-    @Override
-    public <T> T execute( HttpHost target, HttpRequest request, ResponseHandler<? extends T> responseHandler )
-            throws IOException, ClientProtocolException
-    {
-        return delegate.execute( target, request, responseHandler );
-    }
-
-    @Override
-    public <T> T execute( HttpHost target, HttpRequest request, ResponseHandler<? extends T> responseHandler,
-                          HttpContext context )
-            throws IOException, ClientProtocolException
-    {
-        return delegate.execute( target, request, responseHandler, context );
-    }
+//    @Override
+//    public CloseableHttpResponse execute( final HttpHost target, final HttpRequest request, final HttpContext context )
+//            throws IOException, ClientProtocolException
+//    {
+//        return delegate.execute( target, request, context );
+//    }
+//
+//    @Override
+//    public CloseableHttpResponse execute( final HttpUriRequest request, final HttpContext context )
+//            throws IOException, ClientProtocolException
+//    {
+//        return delegate.execute( request, context );
+//    }
+//
+//    @Override
+//    public CloseableHttpResponse execute( final HttpUriRequest request )
+//            throws IOException, ClientProtocolException
+//    {
+//        return delegate.execute( request );
+//    }
+//
+//    @Override
+//    public CloseableHttpResponse execute( final HttpHost target, final HttpRequest request )
+//            throws IOException, ClientProtocolException
+//    {
+//        return delegate.execute( target, request );
+//    }
+//
+//    @Override
+//    public <T> T execute( final HttpUriRequest request, final ResponseHandler<? extends T> responseHandler )
+//            throws IOException, ClientProtocolException
+//    {
+//        return delegate.execute( request, responseHandler );
+//    }
+//
+//    @Override
+//    public <T> T execute( final HttpUriRequest request, final ResponseHandler<? extends T> responseHandler,
+//                          final HttpContext context )
+//            throws IOException, ClientProtocolException
+//    {
+//        return delegate.execute( request, responseHandler, context );
+//    }
+//
+//    @Override
+//    public <T> T execute( final HttpHost target, final HttpRequest request,
+//                          final ResponseHandler<? extends T> responseHandler )
+//            throws IOException, ClientProtocolException
+//    {
+//        return delegate.execute( target, request, responseHandler );
+//    }
+//
+//    @Override
+//    public <T> T execute( final HttpHost target, final HttpRequest request,
+//                          final ResponseHandler<? extends T> responseHandler, final HttpContext context )
+//            throws IOException, ClientProtocolException
+//    {
+//        return delegate.execute( target, request, responseHandler, context );
+//    }
 
     @Override
     public void close()
@@ -130,6 +136,7 @@ public class TrackedHttpClient
         {
             managerWrapper.release();
         }
+        delegate.close();
     }
 
     @Override
