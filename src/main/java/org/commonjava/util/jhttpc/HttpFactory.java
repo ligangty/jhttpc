@@ -139,7 +139,7 @@ public class HttpFactory
 
             final int timeout = 1000 * location.getRequestTimeoutSeconds();
             builder.setDefaultRequestConfig( RequestConfig.custom()
-                                                          .setConnectionRequestTimeout( timeout )
+//                                                          .setConnectionRequestTimeout( timeout )
                                                           .setSocketTimeout( timeout )
                                                           .setConnectTimeout( timeout )
                                                           .build() );

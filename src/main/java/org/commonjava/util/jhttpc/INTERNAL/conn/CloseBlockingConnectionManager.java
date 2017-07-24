@@ -19,6 +19,7 @@ import org.apache.http.HttpClientConnection;
 import org.apache.http.conn.ConnectionRequest;
 import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.conn.routing.HttpRoute;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,9 +36,9 @@ public class CloseBlockingConnectionManager
 
     private final SiteConnectionConfig config;
 
-    private final HttpClientConnectionManager connectionManager;
+    private final PoolingHttpClientConnectionManager connectionManager;
 
-    public CloseBlockingConnectionManager( final SiteConnectionConfig config, final HttpClientConnectionManager connectionManager )
+    public CloseBlockingConnectionManager( final SiteConnectionConfig config, final PoolingHttpClientConnectionManager connectionManager )
     {
         this.config = config;
         this.connectionManager = connectionManager;
@@ -93,7 +94,8 @@ public class CloseBlockingConnectionManager
     @Override
     public void shutdown()
     {
-        logger.trace( "BLOCKED connection-manager shutdown. This is intentional, to make the connection pool reusable." );
+        logger.trace( "BLOCKED connection-manager shutdown; connection pool is reusable.\n\n{}\n\n",
+                      this );
     }
 
     public void reallyShutdown()
@@ -112,9 +114,10 @@ public class CloseBlockingConnectionManager
     public String toString()
     {
         return "CloseBlockingConnectionManager{" +
-                "config=" + config +
-                ", connectionManager=" + connectionManager +
-                ", instance=" + super.hashCode() +
-                '}';
+                "\nconfig=" + config +
+                "\nconnectionManager=" + connectionManager +
+                "\ninstance=" + super.hashCode() +
+                "\nstats=" + connectionManager == null ? "NONE" : connectionManager.getTotalStats() +
+                "\n}";
     }
 }

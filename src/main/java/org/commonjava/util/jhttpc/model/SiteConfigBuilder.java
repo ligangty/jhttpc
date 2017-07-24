@@ -20,18 +20,16 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.commonjava.util.jhttpc.model.SiteConfig.DEFAULT_CONNECTION_POOL_TIMEOUT_SECONDS;
+import static org.commonjava.util.jhttpc.model.SiteConfig.DEFAULT_MAX_CONNECTIONS;
+import static org.commonjava.util.jhttpc.model.SiteConfig.DEFAULT_PROXY_PORT;
+import static org.commonjava.util.jhttpc.model.SiteConfig.DEFAULT_REQUEST_TIMEOUT_SECONDS;
+
 /**
  * Created by jdcasey on 10/28/15.
  */
 public class SiteConfigBuilder
 {
-
-    // TODO: too low?
-    public static final int DEFAULT_REQUEST_TIMEOUT_SECONDS = 10;
-
-    public static final int DEFAULT_PROXY_PORT = 8080;
-
-    public static final int DEFAULT_MAX_CONNECTIONS = 4;
 
     private String id;
 
@@ -55,6 +53,8 @@ public class SiteConfigBuilder
 
     private Integer requestTimeoutSeconds;
 
+    private Integer connectionPoolTimeoutSeconds;
+
     private Integer maxConnections;
 
     public Map<String, Object> getAttributes()
@@ -75,7 +75,7 @@ public class SiteConfigBuilder
     public SiteConfig build()
     {
         return new SiteConfig( id, uri, user, proxyHost, proxyPort, proxyUser, trustType, keyCertPem, serverCertPem,
-                               requestTimeoutSeconds, maxConnections, attributes );
+                               requestTimeoutSeconds, connectionPoolTimeoutSeconds, maxConnections, attributes );
     }
 
     public String getId()
@@ -140,6 +140,13 @@ public class SiteConfigBuilder
     public int getRequestTimeoutSeconds()
     {
         return requestTimeoutSeconds == null ? DEFAULT_REQUEST_TIMEOUT_SECONDS : requestTimeoutSeconds;
+    }
+
+    public int getConnectionPoolTimeoutSeconds()
+    {
+        return connectionPoolTimeoutSeconds == null ?
+                DEFAULT_CONNECTION_POOL_TIMEOUT_SECONDS :
+                connectionPoolTimeoutSeconds;
     }
 
     public synchronized Object setAttribute( String key, Object value )
@@ -220,6 +227,12 @@ public class SiteConfigBuilder
     public SiteConfigBuilder withRequestTimeoutSeconds( Integer requestTimeoutSeconds )
     {
         this.requestTimeoutSeconds = requestTimeoutSeconds;
+        return this;
+    }
+
+    public SiteConfigBuilder withConnectionPoolTimeoutSeconds( Integer timeoutSeconds )
+    {
+        this.connectionPoolTimeoutSeconds = timeoutSeconds;
         return this;
     }
 
