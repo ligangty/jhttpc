@@ -33,6 +33,8 @@ public final class SiteConfig
 
     public static final int DEFAULT_MAX_CONNECTIONS = 4;
 
+    public static final int DEFAULT_CONNECTION_POOL_TIMEOUT_SECONDS = 60;
+
     private final String id;
 
     private final String uri;
@@ -57,9 +59,11 @@ public final class SiteConfig
 
     private final Integer maxConnections;
 
+    private final Integer connectionPoolTimeoutSeconds;
+
     SiteConfig( String id, String uri, String user, String proxyHost, Integer proxyPort, String proxyUser,
                        SiteTrustType trustType, String keyCertPem, String serverCertPem, Integer requestTimeoutSeconds,
-                       Integer maxConnections, Map<String, Object> attributes )
+                       Integer connectionPoolTimeoutSeconds, Integer maxConnections, Map<String, Object> attributes )
     {
         this.id = id;
         this.uri = uri;
@@ -71,6 +75,7 @@ public final class SiteConfig
         this.keyCertPem = keyCertPem;
         this.serverCertPem = serverCertPem;
         this.requestTimeoutSeconds = requestTimeoutSeconds;
+        this.connectionPoolTimeoutSeconds = connectionPoolTimeoutSeconds;
         this.maxConnections = maxConnections;
         this.attributes = attributes == null ? new HashMap<String, Object>() : attributes;
     }
@@ -137,6 +142,11 @@ public final class SiteConfig
     public String getServerCertPem()
     {
         return serverCertPem;
+    }
+
+    public int getConnectionPoolTimeoutSeconds()
+    {
+        return connectionPoolTimeoutSeconds == null ? DEFAULT_CONNECTION_POOL_TIMEOUT_SECONDS : connectionPoolTimeoutSeconds;
     }
 
     public int getRequestTimeoutSeconds()
