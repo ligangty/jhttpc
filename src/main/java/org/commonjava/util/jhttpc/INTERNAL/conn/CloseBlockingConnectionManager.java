@@ -47,13 +47,20 @@ public class CloseBlockingConnectionManager
     @Override
     public ConnectionRequest requestConnection( final HttpRoute route, final Object state )
     {
-        return connectionManager.requestConnection( route, state );
+        logger.trace( "Requesting connection to: {} with state: {}",
+                      route, state );
+        ConnectionRequest request = connectionManager.requestConnection( route, state );
+        logger.trace( "Connection request is: {}",
+                      request );
+
+        return request;
     }
 
     @Override
     public void releaseConnection( final HttpClientConnection conn, final Object newState, final long validDuration,
                                    final TimeUnit timeUnit )
     {
+        logger.trace( "Releasing connection: {} with new state: {}", conn, newState );
         connectionManager.releaseConnection( conn, newState, validDuration, timeUnit );
     }
 
@@ -62,6 +69,7 @@ public class CloseBlockingConnectionManager
                          final HttpContext context )
             throws IOException
     {
+        logger.trace( "Connecting: {} via route: {}", conn, route );
         connectionManager.connect( conn, route, connectTimeout, context );
     }
 
@@ -69,6 +77,7 @@ public class CloseBlockingConnectionManager
     public void upgrade( final HttpClientConnection conn, final HttpRoute route, final HttpContext context )
             throws IOException
     {
+        logger.trace( "Upgrading: {} via route: {}", conn, route );
         connectionManager.upgrade( conn, route, context );
     }
 
@@ -76,30 +85,33 @@ public class CloseBlockingConnectionManager
     public void routeComplete( final HttpClientConnection conn, final HttpRoute route, final HttpContext context )
             throws IOException
     {
+        logger.trace( "Route complete: {} with route: {}", conn, route );
         connectionManager.routeComplete( conn, route, context );
     }
 
     @Override
     public void closeIdleConnections( final long idletime, final TimeUnit tunit )
     {
+        logger.trace( "Closing idle connections" );
         connectionManager.closeIdleConnections( idletime, tunit );
     }
 
     @Override
     public void closeExpiredConnections()
     {
+        logger.trace( "Closing expired connections" );
         connectionManager.closeExpiredConnections();
     }
 
     @Override
     public void shutdown()
     {
-        logger.trace( "BLOCKED connection-manager shutdown; connection pool is reusable.\n\n{}\n\n",
-                      this );
+        logger.trace( "BLOCKED connection-manager shutdown; connection pool is reusable.\n\n{}\n\n", this );
     }
 
     public void reallyShutdown()
     {
+        logger.trace( "REALLY shutting down connection manager" );
         connectionManager.shutdown();
     }
 
