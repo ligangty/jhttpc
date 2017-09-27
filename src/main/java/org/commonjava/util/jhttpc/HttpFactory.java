@@ -15,7 +15,6 @@
  */
 package org.commonjava.util.jhttpc;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.client.CookieStore;
@@ -179,6 +178,23 @@ public class HttpFactory
 
         if ( location != null )
         {
+            HttpClientContext prototype = location.getClientContextPrototype();
+            if ( prototype != null )
+            {
+                copyContextPrototype( prototype, ctx );
+            }
+
+            RequestConfig reqConf = location.getRequestConfig();
+            if ( reqConf == null )
+            {
+                reqConf = RequestConfig.copy( RequestConfig.DEFAULT )
+                             .setConnectionRequestTimeout(
+                                     location.getConnectionPoolTimeoutSeconds() )
+                             .build();
+            }
+
+            ctx.setRequestConfig( reqConf );
+
             CookieStore cookieStore = (CookieStore) location.getAttribute( COOKIE_STORE );
             if ( cookieStore == null )
             {
@@ -219,6 +235,17 @@ public class HttpFactory
         }
 
         return ctx;
+    }
+
+    private void copyContextPrototype( final HttpClientContext prototype, final HttpClientContext target )
+    {
+        target.setRequestConfig( prototype.getRequestConfig() );
+        target.setAuthCache( prototype.getAuthCache() );
+        target.setAuthSchemeRegistry( prototype.getAuthSchemeRegistry() );
+        target.setCookieSpecRegistry( prototype.getCookieSpecRegistry() );
+        target.setCookieStore( prototype.getCookieStore() );
+        target.setCredentialsProvider( prototype.getCredentialsProvider() );
+        target.setUserToken( prototype.getUserToken() );
     }
 
     private SSLConnectionSocketFactory createSSLSocketFactory( final SiteConfig location )

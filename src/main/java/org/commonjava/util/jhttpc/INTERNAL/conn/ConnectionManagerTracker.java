@@ -16,8 +16,9 @@
 package org.commonjava.util.jhttpc.INTERNAL.conn;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.config.ConnectionConfig;
 import org.apache.http.config.MessageConstraints;
-import org.apache.http.impl.conn.DefaultHttpResponseParserFactory;
+import org.apache.http.config.SocketConfig;
 import org.apache.http.impl.conn.ManagedHttpClientConnectionFactory;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.impl.io.DefaultHttpResponseParser;
@@ -64,6 +65,19 @@ public class ConnectionManagerTracker
 //                    new PoolingHttpClientConnectionManager( config.getSocketFactoryRegistry() );
 
             poolingMgr.setMaxTotal( config.getMaxConnections() );
+            poolingMgr.setDefaultMaxPerRoute( config.getMaxPerRoute() );
+
+            ConnectionConfig connectionConfig = config.getConnectionConfig();
+            if ( connectionConfig != null )
+            {
+                poolingMgr.setDefaultConnectionConfig( connectionConfig );
+            }
+
+            SocketConfig socketConfig = config.getSocketConfig();
+            if ( socketConfig != null )
+            {
+                poolingMgr.setDefaultSocketConfig( socketConfig );
+            }
 
             manager = new CloseBlockingConnectionManager( config, poolingMgr );
         }

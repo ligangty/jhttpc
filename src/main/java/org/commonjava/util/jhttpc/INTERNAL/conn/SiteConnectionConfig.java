@@ -15,8 +15,10 @@
  */
 package org.commonjava.util.jhttpc.INTERNAL.conn;
 
+import org.apache.http.config.ConnectionConfig;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
+import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
@@ -93,6 +95,26 @@ public class SiteConnectionConfig
     public int getMaxConnections()
     {
         return config.getMaxConnections();
+    }
+
+    public int getMaxPerRoute()
+    {
+        return config.getMaxPerRoute();
+    }
+
+    public int getConnectionPoolTimeoutSeconds()
+    {
+        return config.getConnectionPoolTimeoutSeconds();
+    }
+
+    public ConnectionConfig getConnectionConfig()
+    {
+        return config.getConnectionConfig();
+    }
+
+    public SocketConfig getSocketConfig()
+    {
+        return config.getSocketConfig();
     }
 
     public String getId()
