@@ -15,6 +15,11 @@
  */
 package org.commonjava.util.jhttpc.model;
 
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.config.ConnectionConfig;
+import org.apache.http.config.SocketConfig;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
@@ -57,6 +62,16 @@ public class SiteConfigBuilder
 
     private Integer maxConnections;
 
+    private Integer maxPerRoute;
+
+    private ConnectionConfig connectionConfig;
+
+    private SocketConfig socketConfig;
+
+    private RequestConfig requestConfig;
+
+    private HttpClientContext clientContextProtoype;
+
     public Map<String, Object> getAttributes()
     {
         return attributes;
@@ -75,7 +90,8 @@ public class SiteConfigBuilder
     public SiteConfig build()
     {
         return new SiteConfig( id, uri, user, proxyHost, proxyPort, proxyUser, trustType, keyCertPem, serverCertPem,
-                               requestTimeoutSeconds, connectionPoolTimeoutSeconds, maxConnections, attributes );
+                               requestTimeoutSeconds, connectionPoolTimeoutSeconds, maxConnections, maxPerRoute,
+                               connectionConfig, socketConfig, requestConfig, clientContextProtoype, attributes );
     }
 
     public String getId()
@@ -244,6 +260,61 @@ public class SiteConfigBuilder
     public SiteConfigBuilder withMaxConnections( Integer maxConnections )
     {
         this.maxConnections = maxConnections;
+        return this;
+    }
+
+    public int getMaxPerRoute()
+    {
+        return maxPerRoute == null ? getMaxConnections() : maxPerRoute;
+    }
+
+    public SiteConfigBuilder withMaxPerRoute( Integer maxPerRoute )
+    {
+        this.maxPerRoute = maxPerRoute;
+        return this;
+    }
+
+    public ConnectionConfig getConnectionConfig()
+    {
+        return connectionConfig;
+    }
+
+    public SiteConfigBuilder withConnectionConfig( final ConnectionConfig connectionConfig )
+    {
+        this.connectionConfig = connectionConfig;
+        return this;
+    }
+
+    public SocketConfig getSocketConfig()
+    {
+        return socketConfig;
+    }
+
+    public SiteConfigBuilder withSocketConfig( final SocketConfig socketConfig )
+    {
+        this.socketConfig = socketConfig;
+        return this;
+    }
+
+    public RequestConfig getRequestConfig()
+    {
+        return requestConfig;
+    }
+
+    public SiteConfigBuilder withRequestConfig( RequestConfig requestConfig )
+    {
+        this.requestConfig = requestConfig;
+        return this;
+    }
+
+    public HttpClientContext getClientContextProtoype()
+    {
+        return clientContextProtoype;
+    }
+
+    public SiteConfigBuilder withClientContextPrototype( HttpClientContext clientContextPrototype )
+    {
+        this.clientContextProtoype = clientContextPrototype;
         return this;
     }
 

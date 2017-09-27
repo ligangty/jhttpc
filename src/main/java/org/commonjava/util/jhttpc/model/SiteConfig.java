@@ -15,6 +15,11 @@
  */
 package org.commonjava.util.jhttpc.model;
 
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.config.ConnectionConfig;
+import org.apache.http.config.SocketConfig;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
@@ -53,6 +58,10 @@ public final class SiteConfig
 
     private final String serverCertPem;
 
+    private final ConnectionConfig connectionConfig;
+
+    private final SocketConfig socketConfig;
+
     private Map<String, Object> attributes;
 
     private final Integer requestTimeoutSeconds;
@@ -61,9 +70,17 @@ public final class SiteConfig
 
     private final Integer connectionPoolTimeoutSeconds;
 
+    private Integer maxPerRoute;
+
+    private RequestConfig requestConfig;
+
+    private HttpClientContext clientContextPrototype;
+
     SiteConfig( String id, String uri, String user, String proxyHost, Integer proxyPort, String proxyUser,
-                       SiteTrustType trustType, String keyCertPem, String serverCertPem, Integer requestTimeoutSeconds,
-                       Integer connectionPoolTimeoutSeconds, Integer maxConnections, Map<String, Object> attributes )
+                SiteTrustType trustType, String keyCertPem, String serverCertPem, Integer requestTimeoutSeconds,
+                Integer connectionPoolTimeoutSeconds, Integer maxConnections, Integer maxPerRoute,
+                final ConnectionConfig connectionConfig, final SocketConfig socketConfig,
+                final RequestConfig requestConfig, HttpClientContext clientContextPrototype, Map<String, Object> attributes )
     {
         this.id = id;
         this.uri = uri;
@@ -77,6 +94,11 @@ public final class SiteConfig
         this.requestTimeoutSeconds = requestTimeoutSeconds;
         this.connectionPoolTimeoutSeconds = connectionPoolTimeoutSeconds;
         this.maxConnections = maxConnections;
+        this.maxPerRoute = maxPerRoute;
+        this.connectionConfig = connectionConfig;
+        this.socketConfig = socketConfig;
+        this.requestConfig = requestConfig;
+        this.clientContextPrototype = clientContextPrototype;
         this.attributes = attributes == null ? new HashMap<String, Object>() : attributes;
     }
 
@@ -186,6 +208,21 @@ public final class SiteConfig
         return maxConnections == null ? DEFAULT_MAX_CONNECTIONS : maxConnections;
     }
 
+    public int getMaxPerRoute()
+    {
+        return maxPerRoute == null ? getMaxConnections() : maxPerRoute;
+    }
+
+    public ConnectionConfig getConnectionConfig()
+    {
+        return connectionConfig;
+    }
+
+    public SocketConfig getSocketConfig()
+    {
+        return socketConfig;
+    }
+
     public SiteTrustType getTrustType()
     {
         return trustType == null ? SiteTrustType.DEFAULT : trustType;
@@ -231,5 +268,15 @@ public final class SiteConfig
         return "SiteConfig{" +
                 "id='" + id + '\'' +
                 '}';
+    }
+
+    public RequestConfig getRequestConfig()
+    {
+        return requestConfig;
+    }
+
+    public HttpClientContext getClientContextPrototype()
+    {
+        return clientContextPrototype;
     }
 }
