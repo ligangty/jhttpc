@@ -178,30 +178,41 @@ public class HttpFactory
 
         if ( location != null )
         {
+            logger.debug( "Configuring HttpClientContext from SiteConfig" );
             HttpClientContext prototype = location.getClientContextPrototype();
             if ( prototype != null )
             {
+                logger.debug( "Configuring HttpClientContext based on prototype instance" );
                 copyContextPrototype( prototype, ctx );
             }
 
             RequestConfig reqConf = location.getRequestConfig();
             if ( reqConf == null )
             {
+                logger.debug( "Configuring HttpClientContext RequestConfig with connection-pool timeout: {}",
+                              location.getConnectionPoolTimeoutSeconds() );
+
                 reqConf = RequestConfig.copy( RequestConfig.DEFAULT )
                              .setConnectionRequestTimeout(
                                      location.getConnectionPoolTimeoutSeconds() )
                              .build();
             }
+            else
+            {
+                logger.debug( "Configuring HttpClientContext with SiteLocation's RequestConfig instance" );
+                ctx.setRequestConfig( RequestConfig.copy( reqConf ).build() );
+            }
 
-            ctx.setRequestConfig( reqConf );
 
             CookieStore cookieStore = (CookieStore) location.getAttribute( COOKIE_STORE );
             if ( cookieStore == null )
             {
+                logger.debug( "Creating CookieStore" );
                 cookieStore = new BasicCookieStore();
                 location.setAttribute( COOKIE_STORE, cookieStore );
             }
 
+            logger.debug( "Setting CookieStore" );
             ctx.setCookieStore( cookieStore );
 
             final AuthScope as;
@@ -219,6 +230,9 @@ public class HttpFactory
             {
                 if ( authenticator != null )
                 {
+                    logger.debug( "Setting up authentication from SiteConfig's user + authenticator: {}",
+                                  authenticator );
+
                     ctx = authenticator.decoratePrototypeContext( as, location, PasswordType.USER, ctx );
                 }
             }
@@ -227,6 +241,9 @@ public class HttpFactory
             {
                 if ( authenticator != null )
                 {
+                    logger.debug( "Setting up proxy authentication from SiteConfig's proxy user + authenticator: {}",
+                                  authenticator );
+
                     ctx = authenticator.decoratePrototypeContext(
                             new AuthScope( location.getProxyHost(), getProxyPort( location ) ), location,
                             PasswordType.PROXY, ctx );
