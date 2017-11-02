@@ -59,7 +59,7 @@ public class TrackedHttpClient
             throws IOException, ClientProtocolException
     {
         Logger logger = LoggerFactory.getLogger( getClass() );
-        logger.info( "Tracking request/response" );
+        logger.trace( "Tracking request/response" );
         requests.add( new WeakReference<HttpRequest>( request ) );
 
         CloseableHttpResponse response = delegate.execute( target, request, context );
