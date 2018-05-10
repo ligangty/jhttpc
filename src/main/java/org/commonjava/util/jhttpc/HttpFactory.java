@@ -15,6 +15,7 @@
  */
 package org.commonjava.util.jhttpc;
 
+import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.client.CookieStore;
@@ -59,6 +60,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.List;
 
 public class HttpFactory
         implements Closeable
@@ -97,10 +99,16 @@ public class HttpFactory
     public CloseableHttpClient createClient()
             throws JHttpCException
     {
-        return createClient( null );
+        return createClient( null, null );
     }
 
     public CloseableHttpClient createClient( final SiteConfig location )
+                    throws JHttpCException
+    {
+        return createClient( location, null );
+    }
+
+    public CloseableHttpClient createClient( final SiteConfig location, final List<Header> defaultHeaders )
             throws JHttpCException
     {
         CloseableHttpClient client;
@@ -142,6 +150,11 @@ public class HttpFactory
                                                           .setSocketTimeout( timeout )
                                                           .setConnectTimeout( timeout )
                                                           .build() );
+
+            if ( defaultHeaders != null )
+            {
+                builder.setDefaultHeaders( defaultHeaders );
+            }
 
             client = new TrackedHttpClient( builder.build(), managerWrapper );
             //            client = builder.build();
