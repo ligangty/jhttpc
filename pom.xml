@@ -26,7 +26,7 @@
 
   <groupId>org.commonjava.util</groupId>
   <artifactId>jhttpc</artifactId>
-  <version>1.8-SNAPSHOT</version>
+  <version>1.8</version>
 
   <name>Java HTTP Client</name>
   <inceptionYear>2015</inceptionYear>
@@ -35,7 +35,7 @@
     <connection>scm:git:http://github.com/commonjava/jhttpc.git</connection>
     <developerConnection>scm:git:git@github.com:commonjava/jhttpc.git</developerConnection>
     <url>http://github.com/commonjava/jhttpc</url>
-    <tag>HEAD</tag>
+    <tag>jhttpc-1.8</tag>
   </scm>
 
   <properties>
