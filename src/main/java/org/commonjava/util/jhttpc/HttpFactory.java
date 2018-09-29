@@ -23,6 +23,7 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -157,7 +158,6 @@ public class HttpFactory
             }
 
             client = new TrackedHttpClient( builder.build(), managerWrapper );
-            //            client = builder.build();
         }
         else
         {
@@ -400,12 +400,14 @@ public class HttpFactory
             logger.debug( "No server certificates found" );
         }
 
-        if ( ks != null || ts != null )
+        // if user set either ks, ts, or ignore hostname verification, we know this is a ssl factory and set it accordingly
+        if ( ks != null || ts != null || !location.isHostnameVerified() )
         {
             logger.debug( "Setting up SSL context." );
             try
             {
                 SSLContextBuilder sslBuilder = SSLContexts.custom().useProtocol( SSLConnectionSocketFactory.TLS );
+
                 if ( ks != null )
                 {
                     logger.trace( "Loading key material for SSL context..." );
@@ -427,8 +429,15 @@ public class HttpFactory
                 }
 
                 SSLContext ctx = sslBuilder.build();
+                if ( location.isHostnameVerified() )
+                {
+                    fac = new SSLConnectionSocketFactory( ctx, new DefaultHostnameVerifier() );
+                }
+                else
+                {
+                    fac = new SSLConnectionSocketFactory( ctx, new NoopHostnameVerifier() );
+                }
 
-                fac = new SSLConnectionSocketFactory( ctx, new DefaultHostnameVerifier() );
                 location.setAttribute( SSL_FACTORY_ATTRIB, fac );
                 return fac;
             }
