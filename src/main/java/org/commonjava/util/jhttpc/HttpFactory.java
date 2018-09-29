@@ -400,8 +400,8 @@ public class HttpFactory
             logger.debug( "No server certificates found" );
         }
 
-        // if user set either ks, ts, or ignore hostname verification, we know this is a ssl factory and set it accordingly
-        if ( ks != null || ts != null || !location.isHostnameVerified() )
+        // if user set either ks, ts, or want to ignore hostname verification, we know this is a ssl factory and set it accordingly
+        if ( ks != null || ts != null || location.isIgnoreHostnameVerification() )
         {
             logger.debug( "Setting up SSL context." );
             try
@@ -429,13 +429,13 @@ public class HttpFactory
                 }
 
                 SSLContext ctx = sslBuilder.build();
-                if ( location.isHostnameVerified() )
+                if ( location.isIgnoreHostnameVerification() )
                 {
-                    fac = new SSLConnectionSocketFactory( ctx, new DefaultHostnameVerifier() );
+                    fac = new SSLConnectionSocketFactory( ctx, new NoopHostnameVerifier() );
                 }
                 else
                 {
-                    fac = new SSLConnectionSocketFactory( ctx, new NoopHostnameVerifier() );
+                    fac = new SSLConnectionSocketFactory( ctx, new DefaultHostnameVerifier() );
                 }
 
                 location.setAttribute( SSL_FACTORY_ATTRIB, fac );

@@ -76,13 +76,13 @@ public final class SiteConfig
 
     private HttpClientContext clientContextPrototype;
 
-    private final boolean hostnameVerified;
+    private final boolean ignoreHostnameVerification;
 
     SiteConfig( String id, String uri, String user, String proxyHost, Integer proxyPort, String proxyUser,
                 SiteTrustType trustType, String keyCertPem, String serverCertPem, Integer requestTimeoutSeconds,
                 Integer connectionPoolTimeoutSeconds, Integer maxConnections, Integer maxPerRoute,
                 final ConnectionConfig connectionConfig, final SocketConfig socketConfig,
-                final RequestConfig requestConfig, HttpClientContext clientContextPrototype, boolean hostnameVerified, Map<String, Object> attributes )
+                final RequestConfig requestConfig, HttpClientContext clientContextPrototype, boolean ignoreHostnameVerification, Map<String, Object> attributes )
     {
         this.id = id;
         this.uri = uri;
@@ -101,7 +101,7 @@ public final class SiteConfig
         this.socketConfig = socketConfig;
         this.requestConfig = requestConfig;
         this.clientContextPrototype = clientContextPrototype;
-        this.hostnameVerified = hostnameVerified;
+        this.ignoreHostnameVerification = ignoreHostnameVerification;
         this.attributes = attributes == null ? new HashMap<String, Object>() : attributes;
     }
 
@@ -283,9 +283,9 @@ public final class SiteConfig
         return clientContextPrototype;
     }
 
-    public boolean isHostnameVerified()
+    public boolean isIgnoreHostnameVerification()
     {
-        return hostnameVerified;
+        return ignoreHostnameVerification;
     }
 
 }
