@@ -401,7 +401,7 @@ public class HttpFactory
         }
 
         // if user set either ks, ts, or ignore hostname verification, we know this is a ssl factory and set it accordingly
-        if ( ks != null || ts != null || !location.isHostnameVerifier() )
+        if ( ks != null || ts != null || !location.isHostnameVerified() )
         {
             logger.debug( "Setting up SSL context." );
             try
@@ -429,7 +429,7 @@ public class HttpFactory
                 }
 
                 SSLContext ctx = sslBuilder.build();
-                if ( location.isHostnameVerifier() )
+                if ( location.isHostnameVerified() )
                 {
                     fac = new SSLConnectionSocketFactory( ctx, new DefaultHostnameVerifier() );
                 }

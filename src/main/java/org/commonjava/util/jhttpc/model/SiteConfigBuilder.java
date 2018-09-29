@@ -72,7 +72,7 @@ public class SiteConfigBuilder
 
     private HttpClientContext clientContextProtoype;
 
-    private boolean hostnameVerifier;
+    private boolean hostnameVerified;
 
     public Map<String, Object> getAttributes()
     {
@@ -93,7 +93,7 @@ public class SiteConfigBuilder
     {
         return new SiteConfig( id, uri, user, proxyHost, proxyPort, proxyUser, trustType, keyCertPem, serverCertPem,
                                requestTimeoutSeconds, connectionPoolTimeoutSeconds, maxConnections, maxPerRoute,
-                               connectionConfig, socketConfig, requestConfig, clientContextProtoype, hostnameVerifier, attributes );
+                               connectionConfig, socketConfig, requestConfig, clientContextProtoype, hostnameVerified, attributes );
     }
 
     public String getId()
@@ -287,9 +287,9 @@ public class SiteConfigBuilder
         return this;
     }
 
-    public SiteConfigBuilder withHostnameVerifier( final boolean hostnameVerifier )
+    public SiteConfigBuilder withHostnameVerified( final boolean hostnameVerified )
     {
-        this.hostnameVerifier = hostnameVerifier;
+        this.hostnameVerified = hostnameVerified;
         return this;
     }
 
