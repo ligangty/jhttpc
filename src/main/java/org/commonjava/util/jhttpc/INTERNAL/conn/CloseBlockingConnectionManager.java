@@ -19,7 +19,6 @@ import org.apache.http.HttpClientConnection;
 import org.apache.http.conn.ConnectionRequest;
 import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,9 +35,9 @@ public class CloseBlockingConnectionManager
 
     private final SiteConnectionConfig config;
 
-    private final PoolingHttpClientConnectionManager connectionManager;
+    private final HttpClientConnectionManager connectionManager;
 
-    public CloseBlockingConnectionManager( final SiteConnectionConfig config, final PoolingHttpClientConnectionManager connectionManager )
+    public CloseBlockingConnectionManager( final SiteConnectionConfig config, final HttpClientConnectionManager connectionManager )
     {
         this.config = config;
         this.connectionManager = connectionManager;
@@ -129,7 +128,6 @@ public class CloseBlockingConnectionManager
                 "\nconfig=" + config +
                 "\nconnectionManager=" + connectionManager +
                 "\ninstance=" + super.hashCode() +
-                "\nstats=" + connectionManager == null ? "NONE" : connectionManager.getTotalStats() +
                 "\n}";
     }
 }

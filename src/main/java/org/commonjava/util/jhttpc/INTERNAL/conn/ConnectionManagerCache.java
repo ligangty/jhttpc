@@ -16,6 +16,7 @@
 package org.commonjava.util.jhttpc.INTERNAL.conn;
 
 import org.commonjava.util.jhttpc.JHttpCException;
+import org.commonjava.util.jhttpc.lifecycle.ShutdownEnabled;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,12 +25,20 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 /**
  * Created by jdcasey on 11/3/15.
  */
 public class ConnectionManagerCache
+        implements ShutdownEnabled
 {
     private static final long EXPIRATION_SECONDS = 30;
 
@@ -39,6 +48,8 @@ public class ConnectionManagerCache
             new HashMap<SiteConnectionConfig, ConnectionManagerTracker>();
 
     private final Timer timer = new Timer( "jhttpc-connection-manager-cache", true );
+
+    private final Logger logger = LoggerFactory.getLogger( getClass() );
 
     public ConnectionManagerCache()
     {
@@ -54,10 +65,14 @@ public class ConnectionManagerCache
             ConnectionManagerTracker tracker = cache.get( config );
             if ( tracker != null && tracker.getLastRetrieval() < expiration )
             {
-                Logger logger = LoggerFactory.getLogger( getClass() );
-                logger.trace( "Detaching connection tracker from cache: {}", tracker );
-                cache.remove( config );
-                tracker.detach();
+                if ( tracker.detach() )
+                {
+                    logger.trace( "Detached connection tracker from manager cache: {}", tracker );
+                }
+                else
+                {
+                    logger.trace( "Detaching did not result in shutdown for: {}. Try shutdownNow() to forcibly shutdown.", tracker );
+                }
             }
         }
     }
@@ -68,11 +83,101 @@ public class ConnectionManagerCache
         ConnectionManagerTracker tracker = cache.get( config );
         if ( tracker == null )
         {
-            tracker = new ConnectionManagerTracker( config );
+            tracker = new ConnectionManagerTracker( config, this );
             cache.put( config, tracker );
         }
 
         return tracker.retrieved();
+    }
+
+    @Override
+    public boolean isShutdown()
+    {
+        if ( !cache.isEmpty() )
+        {
+            return cache.values().stream().filter( tracker -> tracker.isActive() ).findAny().isPresent();
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean shutdownNow()
+    {
+        try
+        {
+            return doShutdown( (tracker) -> tracker.shutdownNow() );
+        }
+        catch ( InterruptedException e )
+        {
+            logger.warn( "Interrupted while shutting down connection manager cache." );
+        }
+
+        return false;
+    }
+
+    private synchronized boolean doShutdown( Function<ConnectionManagerTracker, Boolean> shutdownAction )
+            throws InterruptedException
+    {
+        AtomicInteger counter = new AtomicInteger( 0 );
+        ExecutorService exec = Executors.newCachedThreadPool( ( runnable ) -> {
+            Thread t = new Thread( runnable );
+            t.setDaemon( true );
+            t.setName( "jHTTPc shutdown-" + ( counter.getAndIncrement() ) + ":" + Thread.currentThread().getName() );
+            t.setPriority( 9 );
+
+            return t;
+        } );
+
+        ExecutorCompletionService<Boolean> svc = new ExecutorCompletionService<>( exec );
+        cache.forEach( ( config, tracker ) -> svc.submit( () -> shutdownAction.apply( tracker ) ) );
+
+        boolean result = true;
+        while ( counter.getAndDecrement() > 0 )
+        {
+            try
+            {
+                result = result && svc.take().get();
+            }
+            catch ( ExecutionException e )
+            {
+                logger.warn( "Error executing shutdown of connection managers." );
+                result = false;
+            }
+        }
+
+        return result;
+    }
+
+    @Override
+    public boolean shutdownGracefully( final long timeoutMillis )
+            throws InterruptedException
+    {
+        AtomicBoolean interrupted = new AtomicBoolean( false );
+        boolean result = doShutdown( ( tracker ) -> {
+            try
+            {
+                return tracker.shutdownGracefully( timeoutMillis );
+            }
+            catch ( InterruptedException e )
+            {
+                interrupted.set( true );
+            }
+
+            return false;
+        } );
+
+        if ( interrupted.get() )
+        {
+            throw new InterruptedException();
+        }
+
+        return result;
+    }
+
+    synchronized void remove( final SiteConnectionConfig config )
+    {
+        cache.remove( config );
     }
 
     static final class ExpirationSweeper

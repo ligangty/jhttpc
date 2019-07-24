@@ -25,6 +25,8 @@ import org.apache.http.impl.io.DefaultHttpResponseParser;
 import org.apache.http.io.HttpMessageParser;
 import org.apache.http.io.HttpMessageParserFactory;
 import org.apache.http.io.SessionInputBuffer;
+import org.commonjava.util.jhttpc.lifecycle.ShutdownEnabled;
+import org.commonjava.util.jhttpc.model.SiteConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,16 +34,21 @@ import org.slf4j.LoggerFactory;
  * Created by jdcasey on 11/3/15.
  */
 public class ConnectionManagerTracker
+        implements ShutdownEnabled
 {
     private SiteConnectionConfig config;
+
+    private ConnectionManagerCache managerCache;
+
     private CloseBlockingConnectionManager manager;
     private int users = 0;
     private boolean detached;
     private long lastRetrieval;
 
-    public ConnectionManagerTracker( SiteConnectionConfig config )
+    public ConnectionManagerTracker( SiteConnectionConfig config, ConnectionManagerCache managerCache )
     {
         this.config = config;
+        this.managerCache = managerCache;
     }
 
     public synchronized CloseBlockingConnectionManager acquire()
@@ -82,6 +89,7 @@ public class ConnectionManagerTracker
             manager = new CloseBlockingConnectionManager( config, poolingMgr );
         }
 
+        detached = false;
         users++;
         return manager;
     }
@@ -92,14 +100,16 @@ public class ConnectionManagerTracker
         tryShutdown();
     }
 
-    private void tryShutdown()
+    private boolean tryShutdown()
     {
-        if ( detached && users < 1 )
+        if ( detached && !isActive() )
         {
-            Logger logger = LoggerFactory.getLogger( getClass() );
-            logger.debug( "Shutdown connection manager: {}", this );
             manager.reallyShutdown();
+            managerCache.remove( config );
+            return true;
         }
+
+        return false;
     }
 
     public long getLastRetrieval()
@@ -113,10 +123,10 @@ public class ConnectionManagerTracker
         return this;
     }
 
-    public void detach()
+    public boolean detach()
     {
         this.detached = true;
-        tryShutdown();
+        return tryShutdown();
     }
 
     @Override
@@ -149,6 +159,53 @@ public class ConnectionManagerTracker
         return "ConnectionManagerTracker{" +
                 "config=" + config +
                 ", manager=" + manager + ", instance=" + super.hashCode() + '}';
+    }
+
+    public SiteConfig getSiteConfig()
+    {
+        return config.getConfig();
+    }
+
+    public SiteConnectionConfig getConnectionConfig()
+    {
+        return config;
+    }
+
+    @Override
+    public boolean isShutdown()
+    {
+        return users < 1;
+    }
+
+    @Override
+    public synchronized boolean shutdownNow()
+    {
+        manager.reallyShutdown();
+        return true;
+    }
+
+    @Override
+    public synchronized boolean shutdownGracefully( final long timeoutMillis )
+            throws InterruptedException
+    {
+        long expires = System.currentTimeMillis() + timeoutMillis;
+        while ( isActive() && System.currentTimeMillis() < expires )
+        {
+            Thread.sleep( 100 );
+        }
+
+        if ( !isActive() )
+        {
+            manager.reallyShutdown();
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean isActive()
+    {
+        return users > 0;
     }
 
     private class ResponseParserFactory
