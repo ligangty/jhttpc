@@ -92,6 +92,11 @@ public class SiteConnectionConfig
                 '}';
     }
 
+    public SiteConfig getConfig()
+    {
+        return config;
+    }
+
     public int getMaxConnections()
     {
         return config.getMaxConnections();

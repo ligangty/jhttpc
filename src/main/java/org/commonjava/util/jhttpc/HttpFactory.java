@@ -45,6 +45,7 @@ import org.commonjava.util.jhttpc.auth.ClientAuthenticator;
 import org.commonjava.util.jhttpc.auth.PasswordKey;
 import org.commonjava.util.jhttpc.auth.PasswordManager;
 import org.commonjava.util.jhttpc.auth.PasswordType;
+import org.commonjava.util.jhttpc.lifecycle.ShutdownEnabled;
 import org.commonjava.util.jhttpc.model.SiteConfig;
 import org.commonjava.util.jhttpc.model.SiteTrustType;
 import org.slf4j.Logger;
@@ -64,7 +65,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.List;
 
 public class HttpFactory
-        implements Closeable
+        implements Closeable, ShutdownEnabled
 {
     private static final String SSL_FACTORY_ATTRIB = "ssl-factory";
 
@@ -482,5 +483,24 @@ public class HttpFactory
             throws IOException
     {
         //        connectionManager.reallyShutdown();
+    }
+
+    @Override
+    public boolean isShutdown()
+    {
+        return connectionCache.isShutdown();
+    }
+
+    @Override
+    public boolean shutdownNow()
+    {
+        return connectionCache.shutdownNow();
+    }
+
+    @Override
+    public boolean shutdownGracefully( final long timeoutMillis )
+            throws InterruptedException
+    {
+        return connectionCache.shutdownGracefully( timeoutMillis );
     }
 }
