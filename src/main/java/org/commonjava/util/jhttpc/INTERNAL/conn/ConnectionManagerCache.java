@@ -146,6 +146,8 @@ public class ConnectionManagerCache
             }
         }
 
+        timer.cancel();
+
         return result;
     }
 
