@@ -21,12 +21,12 @@
   <parent>
     <groupId>org.commonjava</groupId>
     <artifactId>commonjava</artifactId>
-    <version>14</version>
+    <version>20-SNAPSHOT</version>
   </parent>
 
   <groupId>org.commonjava.util</groupId>
   <artifactId>jhttpc</artifactId>
-  <version>1.12-SNAPSHOT</version>
+  <version>1.20-SNAPSHOT</version>
 
   <name>Java HTTP Client</name>
   <inceptionYear>2015</inceptionYear>
@@ -41,7 +41,7 @@
   <properties>
     <pmd.skip>true</pmd.skip>
     <projectOwner>Red Hat, Inc.</projectOwner>
-    <javaVersion>1.8</javaVersion>
+    <javaVersion>11</javaVersion>
     <httpcoreVersion>4.4.6</httpcoreVersion>
     <httpclientVersion>4.5.3</httpclientVersion>
     <dockerWaitFor>Setting LogLevel for all modules to trace6</dockerWaitFor>
@@ -75,7 +75,7 @@
       <dependency>
         <groupId>org.commonjava.boms</groupId>
         <artifactId>web-commons-bom</artifactId>
-        <version>21</version>
+        <version>30-SNAPSHOT</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -342,7 +342,6 @@ javax.net.debug=ssl:handshake:verbose
         </plugin>
         <plugin>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>2.19</version>
           <executions>
             <execution>
               <id>functional-tests</id>
