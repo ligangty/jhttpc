@@ -74,6 +74,12 @@ public class SiteConfigBuilder
 
     private boolean ignoreHostnameVerification;
 
+    private Boolean metricEnabled;
+
+    private String honeycombDataset;
+
+    private String honeycombWriteKey;
+
     public Map<String, Object> getAttributes()
     {
         return attributes;
@@ -94,7 +100,7 @@ public class SiteConfigBuilder
         return new SiteConfig( id, uri, user, proxyHost, proxyPort, proxyUser, trustType, keyCertPem, serverCertPem,
                                requestTimeoutSeconds, connectionPoolTimeoutSeconds, maxConnections, maxPerRoute,
                                connectionConfig, socketConfig, requestConfig, clientContextProtoype,
-                               ignoreHostnameVerification, attributes );
+                               ignoreHostnameVerification, attributes, metricEnabled, honeycombDataset, honeycombWriteKey );
     }
 
     public String getId()
@@ -330,6 +336,21 @@ public class SiteConfigBuilder
     public SiteTrustType getTrustType()
     {
         return trustType == null ? SiteTrustType.DEFAULT : trustType;
+    }
+
+    public SiteConfigBuilder withMetricEnabled( final boolean metricEnabled ) {
+        this.metricEnabled = metricEnabled;
+        return this;
+    }
+
+    public SiteConfigBuilder withHoneycombDataset( final String honeycombDataset ) {
+        this.honeycombDataset = honeycombDataset;
+        return this;
+    }
+
+    public SiteConfigBuilder withHoneycombWriteKey( final String honeycombWriteKey) {
+        this.honeycombWriteKey = honeycombWriteKey;
+        return this;
     }
 
     public void removeAttribute( String key )
