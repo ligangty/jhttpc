@@ -80,6 +80,8 @@ public class SiteConfigBuilder
 
     private String honeycombWriteKey;
 
+    private Integer baseSampleRate;
+
     public Map<String, Object> getAttributes()
     {
         return attributes;
@@ -100,7 +102,7 @@ public class SiteConfigBuilder
         return new SiteConfig( id, uri, user, proxyHost, proxyPort, proxyUser, trustType, keyCertPem, serverCertPem,
                                requestTimeoutSeconds, connectionPoolTimeoutSeconds, maxConnections, maxPerRoute,
                                connectionConfig, socketConfig, requestConfig, clientContextProtoype,
-                               ignoreHostnameVerification, attributes, metricEnabled, honeycombDataset, honeycombWriteKey );
+                               ignoreHostnameVerification, attributes, metricEnabled, honeycombDataset, honeycombWriteKey, baseSampleRate );
     }
 
     public String getId()
@@ -350,6 +352,11 @@ public class SiteConfigBuilder
 
     public SiteConfigBuilder withHoneycombWriteKey( final String honeycombWriteKey) {
         this.honeycombWriteKey = honeycombWriteKey;
+        return this;
+    }
+
+    public SiteConfigBuilder withBaseSampleRate( final Integer baseSampleRate) {
+        this.baseSampleRate = baseSampleRate;
         return this;
     }
 
