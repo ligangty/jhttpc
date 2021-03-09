@@ -78,11 +78,20 @@ public final class SiteConfig
 
     private final boolean ignoreHostnameVerification;
 
+    private final Boolean metricEnabled;
+
+    private final String honeycombDataset;
+
+    private final String honeycombWriteKey;
+
+    private final Integer baseSampleRate;
+
     SiteConfig( String id, String uri, String user, String proxyHost, Integer proxyPort, String proxyUser,
                 SiteTrustType trustType, String keyCertPem, String serverCertPem, Integer requestTimeoutSeconds,
                 Integer connectionPoolTimeoutSeconds, Integer maxConnections, Integer maxPerRoute,
                 final ConnectionConfig connectionConfig, final SocketConfig socketConfig,
-                final RequestConfig requestConfig, HttpClientContext clientContextPrototype, boolean ignoreHostnameVerification, Map<String, Object> attributes )
+                final RequestConfig requestConfig, HttpClientContext clientContextPrototype, boolean ignoreHostnameVerification, Map<String, Object> attributes,
+                Boolean metricEnabled, String honeycombDataset, String honeycombWriteKey, Integer baseSampleRate )
     {
         this.id = id;
         this.uri = uri;
@@ -103,6 +112,11 @@ public final class SiteConfig
         this.clientContextPrototype = clientContextPrototype;
         this.ignoreHostnameVerification = ignoreHostnameVerification;
         this.attributes = attributes == null ? new HashMap<String, Object>() : attributes;
+        this.metricEnabled = metricEnabled;
+        this.honeycombDataset = honeycombDataset;
+        this.honeycombWriteKey = honeycombWriteKey;
+        this.baseSampleRate = baseSampleRate;
+
     }
 
     public Map<String, Object> getAttributes()
@@ -230,6 +244,20 @@ public final class SiteConfig
     {
         return trustType == null ? SiteTrustType.DEFAULT : trustType;
     }
+
+    public Boolean isMetricEnabled() {
+        return metricEnabled == null ? false : metricEnabled;
+    }
+
+    public String getHoneycombDataset() {
+        return honeycombDataset;
+    }
+
+    public String getHoneycombWriteKey() {
+        return honeycombWriteKey;
+    }
+
+    public Integer getBaseSampleRate() { return baseSampleRate; }
 
     public Object removeAttribute( String key )
     {
