@@ -45,14 +45,12 @@ import org.commonjava.util.jhttpc.auth.ClientAuthenticator;
 import org.commonjava.util.jhttpc.auth.PasswordKey;
 import org.commonjava.util.jhttpc.auth.PasswordManager;
 import org.commonjava.util.jhttpc.auth.PasswordType;
-import org.commonjava.util.jhttpc.lifecycle.ShutdownEnabled;
 import org.commonjava.util.jhttpc.model.SiteConfig;
 import org.commonjava.util.jhttpc.model.SiteTrustType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
-import java.io.Closeable;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.security.KeyManagementException;
@@ -65,7 +63,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.List;
 
 public class HttpFactory
-        implements Closeable, ShutdownEnabled
+        implements HttpFactoryIfc
 {
     private static final String SSL_FACTORY_ATTRIB = "ssl-factory";
 
@@ -98,18 +96,21 @@ public class HttpFactory
         return passwords;
     }
 
+    @Override
     public CloseableHttpClient createClient()
             throws JHttpCException
     {
         return createClient( null, null );
     }
 
+    @Override
     public CloseableHttpClient createClient( final SiteConfig location )
                     throws JHttpCException
     {
         return createClient( location, null );
     }
 
+    @Override
     public CloseableHttpClient createClient( final SiteConfig location, final List<Header> defaultHeaders )
             throws JHttpCException
     {
@@ -179,12 +180,14 @@ public class HttpFactory
         return port;
     }
 
+    @Override
     public HttpClientContext createContext()
             throws JHttpCException
     {
         return createContext( null );
     }
 
+    @Override
     public HttpClientContext createContext( final SiteConfig location )
             throws JHttpCException
     {
@@ -479,6 +482,7 @@ public class HttpFactory
         return null;
     }
 
+    @Override
     public void close()
             throws IOException
     {
